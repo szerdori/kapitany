@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kapitány</title>
+<meta name="theme-color" content="#2F5D7C">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Kapitány">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,400;7..72,600&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+/* Egy oszlopos, mobil-első elrendezés: felül a fül címe, alul a fülsor. Olvasáshoz Literata, kezelőfelülethez Figtree. */
+:root {
+  --bg: #F2F4F3; --surface: #FFFFFF; --ink: #1B2430; --muted: #5B6672; --line: #DAE0E4;
+  --accent: #2F5D7C; --accent-ink: #FFFFFF; --accent-soft: #DCE8F0;
+  --good: #2E7D5B; --bad: #A4423A;
+  --font-read: "Literata", Georgia, serif;
+  --font-ui: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11161B; --surface: #1A2128; --ink: #E4E9EE; --muted: #9AA6B2; --line: #2C3640;
+  --accent: #8DB8D6; --accent-ink: #0E1820; --accent-soft: #22384A; --good: #7CC7A2; --bad: #E79A92; color-scheme: dark; } }
+html, body { background: var(--bg); color: var(--ink); }
+body { margin: 0; font-family: var(--font-ui); font-size: 16px; line-height: 1.5; }
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wrap { max-width: 680px; margin: 0 auto; padding: 0 16px 110px; }
+header.top { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: calc(14px + env(safe-area-inset-top, 0px)) 0 10px; }
+.date { font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+h1 { font-family: var(--font-read); font-weight: 600; font-size: 28px; line-height: 1.15; margin: 2px 0 0; }
+h2 { font-family: var(--font-ui); font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 28px 0 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; }
+.muted { color: var(--muted); }
+.small { font-size: 14px; }
+.badge { display: inline-block; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.badge.plain { background: transparent; border: 1px solid var(--line); color: var(--muted); font-weight: 500; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 9px 16px; font-weight: 600; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* Időjárás */
+.wx-now { display: flex; align-items: baseline; gap: 12px; }
+.wx-temp { font-size: 44px; font-weight: 700; line-height: 1; }
+.wx-hours { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 14px; text-align: center; font-size: 13px; }
+.wx-hours b { display: block; font-size: 15px; }
+.wx-tip { margin-top: 12px; font-weight: 600; }
+
+/* Hírek */
+.news { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.news li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
+.news .t { font-family: var(--font-read); font-weight: 600; font-size: 17px; line-height: 1.35; }
+.news .s { font-family: var(--font-read); margin-top: 6px; }
+.news .w { margin-top: 6px; font-size: 14px; color: var(--muted); }
+.news .links { margin-top: 8px; font-size: 14px; display: flex; gap: 12px; flex-wrap: wrap; }
+.closing { text-align: center; font-family: var(--font-read); font-style: italic; color: var(--muted); margin: 36px 0 8px; }
+
+/* Inspiráció */
+.modes { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--surface); }
+.modes button { border: 0; background: none; border-radius: 999px; padding: 6px 14px; font-weight: 600; color: var(--muted); }
+.modes button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.stumble { margin-top: 14px; }
+.stumble .meta { font-size: 13px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.stumble h3 { font-family: var(--font-read); font-size: 22px; line-height: 1.25; margin: 8px 0; }
+.stumble h3 a { color: var(--ink); text-decoration: none; }
+.stumble h3 a:hover { text-decoration: underline; }
+.stumble .desc { font-family: var(--font-read); }
+.stumble .why { margin-top: 12px; font-size: 14px; color: var(--muted); border-left: 3px solid var(--accent-soft); padding-left: 10px; }
+.votes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 16px; }
+.votes button { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 4px; font-weight: 600; font-size: 14px; }
+.votes button span { display: block; font-size: 22px; line-height: 1.1; }
+.counter { margin-top: 10px; text-align: center; font-size: 13px; color: var(--muted); }
+
+/* Később */
+.later { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.later li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 16px; display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.later a { font-family: var(--font-read); font-weight: 600; color: var(--ink); }
+
+/* Beállítások */
+label.f { display: block; font-weight: 600; margin-bottom: 6px; }
+input[type=text], input[type=number] { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+.results { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; }
+.results button { width: 100%; text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 8px 12px; }
+dl.status { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; font-size: 14px; }
+dl.status dt { color: var(--muted); }
+dl.status dd { margin: 0; }
+
+nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line); display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom, 0px); }
+nav.tabs .in { display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; max-width: 680px; }
+nav.tabs button { border: 0; background: none; padding: 10px 4px 12px; font-size: 13px; font-weight: 600; color: var(--muted); }
+nav.tabs button span { display: block; font-size: 20px; line-height: 1.2; }
+nav.tabs button[aria-current="page"] { color: var(--accent); }
+.gate { text-align: center; padding-top: 18vh; }
+.gate p { max-width: 420px; margin: 12px auto 20px; }
+.toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 999px; font-size: 14px; z-index: 9; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="gate" class="gate" hidden></div>
+  <div id="app" hidden>
+    <header class="top"><div class="date" id="today"></div><h1 id="title">Mai nap</h1></header>
+    <main id="view"></main>
+  </div>
+</div>
+<nav class="tabs" id="tabs" hidden><div class="in">
+  <button data-tab="ma" aria-current="page"><span>☀︎</span>Mai nap</button>
+  <button data-tab="insp"><span>✦</span>Inspiráció</button>
+  <button data-tab="kesobb"><span>⚑</span>Később</button>
+  <button data-tab="beall"><span>⚙︎</span>Beállítások</button>
+</div></nav>
+<div id="toast" class="toast" hidden></div>
+
+<script>
+// A Kapitány logikája. Az adatbázist egy kis adapter adja (lent a Firebase-es, a tesztekben egy memóriabeli).
+(function () {
+  const COLL = { daily: 'kapitany_daily', cards: 'kapitany_cards', feedback: 'kapitany_feedback', settings: 'kapitany_settings', meta: 'kapitany_meta' };
+  const TEMAK = { dnd: 'D&D', neveles: 'Gyereknevelés', 'it-vezetes': 'IT-vezetés', ai: 'AI-használat', veletlen: 'Véletlen érdekesség' };
+  const TIPUS = { szoveg: 'Olvasnivaló', video: 'Videó', podcast: 'Podcast' };
+  const DEFAULT_CITY = { nev: 'Budapest', lat: 47.4979, lon: 19.0402 };
+  const VALUE = { fel: 1, kesobb: 1.5, le: -1.5, ugras: -0.3 };
+  const DAY = 86400e3;
+
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const safeUrl = u => /^https?:\/\//i.test(String(u || '')) ? String(u) : '#';
+  const now = () => (window.KAPITANY_NOW ? window.KAPITANY_NOW() : Date.now());
+  const bpDate = (t = now()) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Budapest', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(t));
+  const bpTime = t => new Intl.DateTimeFormat('hu-HU', { timeZone: 'Europe/Budapest', hour: '2-digit', minute: '2-digit' }).format(new Date(t));
+  const bpLong = t => new Intl.DateTimeFormat('hu-HU', { timeZone: 'Europe/Budapest', month: 'long', day: 'numeric', weekday: 'long' }).format(new Date(t));
+
+  // ---- Ajánló: téma- és forrássúlyok a visszajelzésekből, 30 napos felezési idővel ----
+  function weights(feedback, t = now()) {
+    const w = { tema: {}, forras: {} };
+    for (const f of feedback) {
+      const v = VALUE[f.szavazat]; if (v == null) continue;
+      const decay = Math.pow(0.5, Math.max(0, t - (f.ido || t)) / (30 * DAY));
+      if (f.tema) w.tema[f.tema] = (w.tema[f.tema] || 0) + v * decay;
+      if (f.forras) w.forras[f.forras] = (w.forras[f.forras] || 0) + v * decay;
+    }
+    return w;
+  }
+  const allowed = (c, mod) => mod === 'hangos' || c.tipus === 'szoveg' || !c.tipus || (c.tipus === 'video' && c.feliratos === true);
+  function score(c, w, today) {
+    return (w.tema[c.tema] || 0) + 0.5 * (w.forras[c.forras] || 0) + (c.ajanlva === today ? 3 : 0) + (c.megjelent ? Math.max(0, 1 - (now() - c.megjelent) / (14 * DAY)) * 0.5 : 0);
+  }
+  // Minden negyedik kártya szándékosan felfedezés: a kevésbé kedvelt fél közül véletlenszerűen.
+  function nextCard({ cards, feedback, mod, today, rand = Math.random }) {
+    const voted = new Set(feedback.map(f => f.id));
+    const pool = cards.filter(c => !voted.has(c.id) && allowed(c, mod));
+    if (!pool.length) return null;
+    const w = weights(feedback);
+    const ranked = pool.map(c => ({ c, s: score(c, w, today) })).sort((a, b) => b.s - a.s);
+    const todayCount = feedback.filter(f => f.nap === today).length;
+    if (todayCount % 4 === 3 && ranked.length > 3) {
+      const low = ranked.slice(Math.floor(ranked.length / 2));
+      const pick = low[Math.floor(rand() * low.length)];
+      return { card: pick.c, felfedezes: true, w };
+    }
+    return { card: ranked[0].c, felfedezes: false, w };
+  }
+  function reason(r) {
+    const c = r.card;
+    if (c.miert) return c.miert;
+    if (r.felfedezes) return 'Véletlen felfedezés, hogy ne zárjon buborékba az ajánló.';
+    const wt = r.w.tema[c.tema] || 0, wf = r.w.forras[c.forras] || 0;
+    if (wf > 0.8) return `Mert eddig tetszettek a(z) ${c.forras} írásai.`;
+    if (wt > 0.8) return `Mert szereted a(z) ${TEMAK[c.tema] || c.tema} témát.`;
+    return 'Friss írás az egyik forrásodtól; még tanulom, mi tetszik.';
+  }
+
+  // ---- Időjárás (Open-Meteo, kulcs nélkül) ----
+  const WMO = [[0, '☀️', 'derült'], [1, '🌤️', 'túlnyomóan derült'], [2, '⛅', 'részben felhős'], [3, '☁️', 'borult'], [45, '🌫️', 'köd'], [48, '🌫️', 'zúzmarás köd'],
+    [51, '🌦️', 'szitálás'], [53, '🌦️', 'szitálás'], [55, '🌦️', 'erős szitálás'], [56, '🌧️', 'ónos szitálás'], [57, '🌧️', 'ónos szitálás'], [61, '🌧️', 'gyenge eső'], [63, '🌧️', 'eső'], [65, '🌧️', 'erős eső'],
+    [66, '🌧️', 'ónos eső'], [67, '🌧️', 'ónos eső'], [71, '🌨️', 'gyenge havazás'], [73, '🌨️', 'havazás'], [75, '❄️', 'erős havazás'], [77, '🌨️', 'hószemcse'], [80, '🌦️', 'zápor'], [81, '🌧️', 'zápor'], [82, '⛈️', 'heves zápor'],
+    [85, '🌨️', 'hózápor'], [86, '❄️', 'erős hózápor'], [95, '⛈️', 'zivatar'], [96, '⛈️', 'zivatar jéggel'], [99, '⛈️', 'zivatar jéggel']];
+  const wmo = code => (WMO.find(x => x[0] === code) || [0, '·', '']).slice(1);
+  function weatherTip(d) {
+    const tips = [];
+    if (d.snowfall_sum > 0.2) tips.push('Havazás várható.');
+    if (d.precipitation_probability_max >= 50 || d.precipitation_sum >= 1) tips.push('Vigyél esernyőt.');
+    else tips.push('Esernyő nem kell.');
+    if (d.temperature_2m_min <= -2) tips.push('Fagyos reggel, öltözz rétegesen.');
+    return tips.join(' ');
+  }
+  async function loadWeather(city) {
+    const u = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,snowfall_sum&timezone=Europe%2FBudapest&forecast_days=2`;
+    const r = await fetch(u); if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+  function weatherHtml(city, w) {
+    const d = { temperature_2m_max: w.daily.temperature_2m_max[0], temperature_2m_min: w.daily.temperature_2m_min[0], precipitation_sum: w.daily.precipitation_sum[0], precipitation_probability_max: w.daily.precipitation_probability_max[0], snowfall_sum: w.daily.snowfall_sum[0] };
+    const [icon, txt] = wmo(w.current.weather_code);
+    const start = w.hourly.time.findIndex(t => t >= w.current.time.slice(0, 13));
+    const hours = [];
+    for (let i = Math.max(0, start) + 1; hours.length < 6 && i < w.hourly.time.length; i += 3) {
+      const [hi] = wmo(w.hourly.weather_code[i]);
+      hours.push(`<div><span class="muted">${esc(w.hourly.time[i].slice(11, 16))}</span><b>${hi}</b>${Math.round(w.hourly.temperature_2m[i])}°<div class="muted">${w.hourly.precipitation_probability[i] ?? 0}%</div></div>`);
+    }
+    return `<div class="card" data-k="weather"><div class="row" style="justify-content:space-between"><span class="muted small">${esc(city.nev)}</span><span class="muted small">ma ${Math.round(d.temperature_2m_min)}° / ${Math.round(d.temperature_2m_max)}°</span></div>
+      <div class="wx-now"><span class="wx-temp">${Math.round(w.current.temperature_2m)}°</span><span>${icon} ${esc(txt)}</span></div>
+      <div class="wx-hours">${hours.join('')}</div><div class="wx-tip">${esc(weatherTip(d))}</div></div>`;
+  }
+
+  // ---- Állapot ----
+  const S = { auth: { status: 'loading' }, db: null, tab: 'ma', daily: null, cards: [], feedback: [], settings: {}, meta: {}, weather: null, weatherErr: false, cityResults: null, unsub: [], current: null };
+  const $ = id => document.getElementById(id);
+  const city = () => S.settings.varos || DEFAULT_CITY;
+  const mod = () => S.settings.mod || 'csendes';
+  const limit = () => Number(S.settings.napiKeret) || 15;
+
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => (t.hidden = true), 2200); }
+
+  function viewMa() {
+    const today = bpDate();
+    const parts = [];
+    parts.push(S.weather ? weatherHtml(city(), S.weather) : `<div class="card muted" data-k="weather">${S.weatherErr ? 'Az időjárás most nem érhető el.' : 'Időjárás betöltése…'}</div>`);
+    const d = S.daily;
+    if (!d) { parts.push(`<p class="muted" style="margin-top:24px">Még nincs napi anyag. Az alapréteg reggelente készül, vagy indítsd el kézzel a GitHubon (Actions → Napi alapréteg → Run workflow).</p>`); return parts.join(''); }
+    let badge = d.reteg === 'claude' ? `<span class="badge" data-k="layer">Claude-összefoglaló · ${esc(bpTime(d.keszult))}</span>` : `<span class="badge plain" data-k="layer">Alapváltozat · eredeti nyelvű címek · Claude ma még nem futott</span>`;
+    if (d.datum !== today) badge += ` <span class="badge plain" data-k="old">Ez a(z) ${esc(d.datum)} anyaga</span>`;
+    parts.push(`<div style="margin-top:18px">${badge}</div>`);
+    const item = it => `<li><div class="t">${esc(it.cim)}</div>${it.osszefoglalo ? `<div class="s">${esc(it.osszefoglalo)}</div>` : ''}${it.miert ? `<div class="w">Miért számít: ${esc(it.miert)}</div>` : ''}${it.mireJo ? `<div class="w">Mire jó: ${esc(it.mireJo)}</div>` : ''}<div class="links">${(it.linkek || []).map(l => `<a href="${esc(safeUrl(l.url))}" target="_blank" rel="noopener">${esc(l.nev || 'forrás')} ↗</a>`).join('')}</div></li>`;
+    for (const r of d.rovatok || []) if ((r.items || []).length) parts.push(`<h2>${esc(r.cim)}</h2><ul class="news">${r.items.map(item).join('')}</ul>`);
+    if ((d.claudeHirek || []).length) parts.push(`<h2>Claude-újdonságok</h2><ul class="news">${d.claudeHirek.map(item).join('')}</ul>`);
+    parts.push(`<p class="closing">${esc(d.zaras || 'Ennyi a fontos. Innen már csak kedvtelés.')}</p>`);
+    return parts.join('');
+  }
+
+  function viewInsp() {
+    const today = bpDate();
+    const m = mod();
+    const head = `<div class="row" style="justify-content:space-between"><div class="modes" role="group" aria-label="Mód"><button data-act="mod" data-v="csendes" aria-pressed="${m === 'csendes'}">Csendes</button><button data-act="mod" data-v="hangos" aria-pressed="${m === 'hangos'}">Hangos</button></div><span class="muted small">${m === 'csendes' ? 'csak szöveg és feliratos videó' : 'minden, hanggal is'}</span></div>`;
+    const done = S.feedback.filter(f => f.nap === today && f.szavazat !== 'kesobb').length;
+    if (done >= limit()) { S.current = null; return head + `<div class="card stumble" data-k="limit"><h3>Mára elfogyott.</h3><p class="desc">Ez volt a napi ${limit()} kártya. Holnap jön az új adag; addig ott a Később lista.</p><button class="btn" data-act="tab" data-v="kesobb">Később lista</button></div>`; }
+    // A már mutatott kártya marad, amíg nem szavaztál rá (különben egy háttérfrissítés kicserélné).
+    const keep = S.current && !S.feedback.some(f => f.id === S.current.card.id) && allowed(S.current.card, m) ? S.current : null;
+    const r = keep || nextCard({ cards: S.cards, feedback: S.feedback, mod: m, today });
+    S.current = r;
+    if (!r) return head + `<div class="card stumble muted" data-k="empty">Most nincs új kártya ebben a módban. Az alapréteg naponta hoz újakat${m === 'csendes' ? ', és hangos módban több is lehet' : ''}.</div>`;
+    const c = r.card;
+    const meta = [TEMAK[c.tema] || c.tema, c.forras, TIPUS[c.tipus] || '', c.percek ? `${c.percek} perc` : ''].filter(Boolean).map(esc).join(' · ');
+    return head + `<article class="card stumble" data-k="card" data-id="${esc(c.id)}"><div class="meta">${meta}${r.felfedezes ? ' · <b>felfedezés</b>' : ''}</div>
+      <h3><a href="${esc(safeUrl(c.url))}" target="_blank" rel="noopener" data-act="open">${esc(c.cimHu || c.cim)}</a></h3>
+      ${c.cimHu && c.cimHu !== c.cim ? `<div class="muted small">${esc(c.cim)}</div>` : ''}
+      <p class="desc">${esc(c.leirasHu || c.leiras || '')}</p>
+      <div class="why">${esc(reason(r))}</div>
+      <div class="votes"><button data-act="vote" data-v="fel"><span>👍</span>Tetszik</button><button data-act="vote" data-v="le"><span>👎</span>Nem</button><button data-act="vote" data-v="ugras"><span>↷</span>Ugrás</button><button data-act="vote" data-v="kesobb"><span>⚑</span>Később</button></div></article>
+      <div class="counter">${done + 1}. a mai ${limit()}-ból</div>`;
+  }
+
+  function viewKesobb() {
+    const list = S.feedback.filter(f => f.szavazat === 'kesobb' && !f.kesz).sort((a, b) => b.ido - a.ido);
+    if (!list.length) return `<p class="muted">Üres. Az Inspiráció fülön a ⚑ Később gombbal tehetsz ide cikkeket.</p>`;
+    return `<ul class="later">${list.map(f => `<li data-id="${esc(f.id)}"><div><a href="${esc(safeUrl(f.url))}" target="_blank" rel="noopener">${esc(f.cim)}</a><div class="muted small">${esc(f.forras || '')}</div></div><button class="btn" data-act="done" data-id="${esc(f.id)}">Kész</button></li>`).join('')}</ul>`;
+  }
+
+  function viewBeall() {
+    const c = city();
+    const res = S.cityResults;
+    const fmt = t => (t ? `${bpDate(t)} ${bpTime(t)}` : 'még nem futott');
+    return `<h2>Város az időjáráshoz</h2><div class="card"><div class="muted small">Most: <b>${esc(c.nev)}</b></div>
+      <form data-form="city" class="row" style="margin-top:10px;flex-wrap:nowrap"><input type="text" name="q" placeholder="pl. Debrecen" aria-label="Város keresése"><button class="btn primary">Keresés</button></form>
+      ${res ? (res.length ? `<ul class="results">${res.map((r, i) => `<li><button data-act="pick-city" data-i="${i}">${esc(r.name)}${r.admin1 ? ', ' + esc(r.admin1) : ''} <span class="muted">(${esc(r.country || '')})</span></button></li>`).join('')}</ul>` : '<p class="muted small">Nincs találat.</p>') : ''}</div>
+      <h2>Inspiráció</h2><div class="card"><label class="f" for="limit">Napi kártyák száma</label><input id="limit" type="number" min="3" max="60" value="${limit()}" data-act="limit"></div>
+      <h2>Frissítések</h2><div class="card"><dl class="status"><dt>Claude utoljára</dt><dd data-k="claude-run">${esc(fmt(S.meta.claude && S.meta.claude.utolsoFutas))}</dd><dt>Alapréteg utoljára</dt><dd data-k="alap-run">${esc(fmt(S.meta.alap && S.meta.alap.utolsoFutas))}</dd></dl></div>
+      <h2>Fiók</h2><div class="card row" style="justify-content:space-between"><span class="small">${esc(S.auth.email || '')}</span><button class="btn" data-act="signout">Kilépés</button></div>`;
+  }
+
+  const TITLES = { ma: 'Mai nap', insp: 'Inspiráció', kesobb: 'Később', beall: 'Beállítások' };
+  function render() {
+    const a = S.auth;
+    $('gate').hidden = a.status === 'signedIn'; $('app').hidden = a.status !== 'signedIn'; $('tabs').hidden = a.status !== 'signedIn';
+    if (a.status !== 'signedIn') {
+      $('gate').innerHTML = a.status === 'unconfigured' ? `<h1>Kapitány</h1><p class="muted">Még nincs összekötve a Firebase-szel: töltsd ki a <code>firebase-config.js</code> fájlt.</p>`
+        : a.status === 'loading' ? `<h1>Kapitány</h1><p class="muted">Betöltés…</p>`
+        : `<h1>Kapitány</h1><p class="muted">Napi fontos dolgok és inspiráció, doomscrolling helyett.</p>${a.error ? `<p style="color:var(--bad)">${esc(a.error)}</p>` : ''}<button class="btn primary" data-act="signin">Belépés Google-fiókkal</button>`;
+      return;
+    }
+    $('today').textContent = bpLong(now());
+    $('title').textContent = TITLES[S.tab];
+    for (const b of document.querySelectorAll('nav.tabs button')) b.setAttribute('aria-current', b.dataset.tab === S.tab ? 'page' : 'false');
+    $('view').innerHTML = S.tab === 'ma' ? viewMa() : S.tab === 'insp' ? viewInsp() : S.tab === 'kesobb' ? viewKesobb() : viewBeall();
+  }
+
+  async function refreshWeather() {
+    try { S.weather = await loadWeather(city()); S.weatherErr = false; } catch { S.weather = null; S.weatherErr = true; }
+    render();
+  }
+
+  function subscribe() {
+    const db = S.db;
+    S.unsub.forEach(u => { try { u(); } catch {} }); S.unsub = [];
+    const today = bpDate();
+    const since = bpDate(now() - 7 * DAY);
+    S.unsub.push(db.query(COLL.daily, [['datum', '>=', since]]).onSnapshot(docs => {
+      const list = docs.map(d => d.data()).sort((a, b) => (a.datum < b.datum ? 1 : -1));
+      S.daily = list[0] || null; if (S.tab === 'ma') render();
+    }));
+    S.unsub.push(db.query(COLL.cards, [['felveve', '>=', now() - 21 * DAY]]).onSnapshot(docs => {
+      S.cards = docs.map(d => ({ id: d.id, ...d.data() })); if (S.tab === 'insp' && !S.current) render();
+    }));
+    S.unsub.push(db.query(COLL.feedback, []).onSnapshot(docs => {
+      S.feedback = docs.map(d => ({ id: d.id, ...d.data() })); if (S.tab !== 'ma') render();
+    }));
+    S.unsub.push(db.doc(`${COLL.settings}/main`).onSnapshot(d => {
+      const old = city(); S.settings = d.exists ? d.data() : {};
+      if (old.lat !== city().lat || !S.weather) refreshWeather(); else render();
+    }));
+    S.unsub.push(db.query(COLL.meta, []).onSnapshot(docs => { S.meta = {}; for (const d of docs) S.meta[d.id] = d.data(); if (S.tab === 'beall') render(); }));
+    void today;
+  }
+
+  async function vote(v) {
+    const r = S.current; if (!r) return;
+    const c = r.card;
+    const doc = { szavazat: v, tema: c.tema || '', forras: c.forras || '', ido: now(), nap: bpDate(), cim: c.cimHu || c.cim || '', url: c.url || '', kesz: false };
+    S.current = null;
+    S.feedback = S.feedback.filter(f => f.id !== c.id).concat([{ id: c.id, ...doc }]);
+    render();
+    try { await S.db.doc(`${COLL.feedback}/${c.id}`).set(doc); } catch { toast('A mentés nem sikerült.'); }
+    if (v === 'kesobb') toast('Elmentve későbbre.');
+  }
+
+  document.addEventListener('click', async e => {
+    const t = e.target.closest('[data-act],[data-tab]'); if (!t) return;
+    if (t.dataset.tab) { S.tab = t.dataset.tab; S.current = null; render(); window.scrollTo(0, 0); return; }
+    const act = t.dataset.act;
+    if (act === 'signin') return window.KapitanyAuth && window.KapitanyAuth.signIn();
+    if (act === 'signout') return window.KapitanyAuth && window.KapitanyAuth.signOut();
+    if (act === 'tab') { S.tab = t.dataset.v; render(); return; }
+    if (act === 'vote') return vote(t.dataset.v);
+    if (act === 'mod') { S.settings = { ...S.settings, mod: t.dataset.v }; S.current = null; render(); return S.db.doc(`${COLL.settings}/main`).set({ mod: t.dataset.v }, { merge: true }); }
+    if (act === 'done') { const id = t.dataset.id; S.feedback = S.feedback.map(f => (f.id === id ? { ...f, kesz: true } : f)); render(); return S.db.doc(`${COLL.feedback}/${id}`).set({ kesz: true }, { merge: true }); }
+    if (act === 'pick-city') {
+      const r = S.cityResults[+t.dataset.i]; const varos = { nev: r.name, lat: r.latitude, lon: r.longitude };
+      S.settings = { ...S.settings, varos }; S.cityResults = null; S.weather = null; render(); refreshWeather(); toast('Város elmentve.');
+      return S.db.doc(`${COLL.settings}/main`).set({ varos }, { merge: true });
+    }
+  });
+  document.addEventListener('submit', async e => {
+    const f = e.target.closest('form[data-form=city]'); if (!f) return;
+    e.preventDefault();
+    const q = f.q.value.trim(); if (!q) return;
+    try {
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=hu&format=json`);
+      S.cityResults = (await r.json()).results || [];
+    } catch { S.cityResults = []; toast('A keresés most nem elérhető.'); }
+    render();
+  });
+  document.addEventListener('change', e => {
+    if (e.target.dataset.act !== 'limit') return;
+    const n = Math.min(60, Math.max(3, Math.round(+e.target.value || 15)));
+    S.settings = { ...S.settings, napiKeret: n };
+    S.db.doc(`${COLL.settings}/main`).set({ napiKeret: n }, { merge: true });
+    toast('Elmentve.');
+  });
+
+  window.KapitanyApp = {
+    setAuth(a) {
+      S.auth = a;
+      if (a.status === 'signedIn') { S.db = a.db; subscribe(); } else { S.unsub.forEach(u => { try { u(); } catch {} }); S.unsub = []; }
+      render();
+    },
+    _test: { weights, nextCard, allowed, reason, weatherTip, state: S },
+  };
+  render();
+})();
+</script>
+
+<script src="firebase-config.js"></script>
+<script type="module">
+// Firebase: Google-belépés + Firestore, az app által várt kis adapterbe csomagolva.
+const V = '10.12.2';
+const cfg = window.FIREBASE_CONFIG;
+if (window.KAPITANY_TEST) {
+  // a tesztek maguk adják az adatbázist
+} else if (!cfg || !cfg.apiKey) {
+  window.KapitanyApp.setAuth({ status: 'unconfigured' });
+} else {
+  const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+  const A = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
+  const F = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+  const app = initializeApp(cfg);
+  const auth = A.getAuth(app);
+  const fs = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) });
+  const snap = d => ({ id: d.id, exists: d.exists(), data: () => d.data() });
+  const db = {
+    query(path, conds) {
+      const ref = F.query(F.collection(fs, path), ...conds.map(([f, op, v]) => F.where(f, op, v)));
+      return { onSnapshot: next => F.onSnapshot(ref, s => next(s.docs.map(snap)), err => console.warn(path, err.code)) };
+    },
+    doc(path) {
+      const r = F.doc(fs, path);
+      return { set: (d, o) => F.setDoc(r, d, o || {}), onSnapshot: next => F.onSnapshot(r, s => next(snap(s)), err => console.warn(path, err.code)) };
+    },
+  };
+  const provider = new A.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  window.KapitanyAuth = {
+    async signIn() {
+      try { await A.signInWithPopup(auth, provider); }
+      catch (e) {
+        if (e.code === 'auth/popup-blocked') return A.signInWithRedirect(auth, provider);
+        if (e.code !== 'auth/popup-closed-by-user' && e.code !== 'auth/cancelled-popup-request')
+          window.KapitanyApp.setAuth({ status: 'signedOut', error: 'A belépés nem sikerült (' + e.code + ').' });
+      }
+    },
+    signOut: () => A.signOut(auth),
+  };
+  A.onAuthStateChanged(auth, u => window.KapitanyApp.setAuth(u ? { status: 'signedIn', email: u.email, db } : { status: 'signedOut' }));
+}
+</script>
+</body>
+</html>

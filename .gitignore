@@ -1,0 +1,6 @@
+# helyi, ideiglenes fájlok (a Claude-feladat munkafájljai, személyes adat, nem kerül a nyilvános tárolóba)
+tmp/
+.claude/
+CLAUDE.md
+node_modules/
+scripts/node_modules/

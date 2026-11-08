@@ -1,0 +1,25 @@
+# Minden feltöltéskor lefuttatja a teszteket (alapréteg logikája + a felület láthatatlan böngészőben).
+name: Tesztek
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tesztek:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: scripts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-save --no-audit --no-fund fast-xml-parser@4.5.0 playwright@1.48.2
+      - run: npx playwright install --with-deps chromium
+      - run: npm test

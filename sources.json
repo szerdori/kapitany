@@ -1,0 +1,56 @@
+{
+  "_leiras": "A Kapitány forrásai. Az alapréteg (GitHub Actions) és a Claude-réteg is innen dolgozik. Bátran szerkeszthető: új sor = új forrás, törölt sor = kimarad.",
+  "varos": { "nev": "Budapest", "lat": 47.4979, "lon": 19.0402 },
+  "hirek": [
+    { "id": "telex", "nev": "Telex", "url": "https://telex.hu/rss", "rovat": "itthon" },
+    { "id": "444", "nev": "444", "url": "https://444.hu/feed", "rovat": "itthon" },
+    { "id": "hvg", "nev": "HVG", "url": "https://hvg.hu/rss", "rovat": "itthon" },
+    { "id": "index", "nev": "Index", "url": "https://index.hu/24ora/rss/", "rovat": "itthon" },
+    { "id": "magyarnemzet", "nev": "Magyar Nemzet", "url": "https://magyarnemzet.hu/feed/", "rovat": "itthon" },
+    { "id": "euronews", "nev": "Euronews", "url": "https://www.euronews.com/rss?level=vertical&name=my-europe", "rovat": "eu" },
+    { "id": "politico", "nev": "Politico Europe", "url": "https://www.politico.eu/feed/", "rovat": "eu" },
+    { "id": "bbc", "nev": "BBC", "url": "https://feeds.bbci.co.uk/news/world/rss.xml", "rovat": "vilag" },
+    { "id": "guardian", "nev": "The Guardian", "url": "https://www.theguardian.com/world/rss", "rovat": "vilag" },
+    { "id": "dw", "nev": "Deutsche Welle", "url": "https://rss.dw.com/rdf/rss-en-world", "rovat": "vilag" },
+    { "id": "aljazeera", "nev": "Al Jazeera", "url": "https://www.aljazeera.com/xml/rss/all.xml", "rovat": "vilag" },
+    { "id": "portfolio", "nev": "Portfolio", "url": "https://www.portfolio.hu/rss/all.xml", "rovat": "gazdasag" },
+    { "id": "bbc-business", "nev": "BBC Business", "url": "https://feeds.bbci.co.uk/news/business/rss.xml", "rovat": "gazdasag" },
+    { "id": "claude-code", "nev": "Claude Code kiadások", "url": "https://github.com/anthropics/claude-code/releases.atom", "rovat": "claude" }
+  ],
+  "claudeOldalak": [
+    { "nev": "Anthropic hírek", "url": "https://www.anthropic.com/news" },
+    { "nev": "Claude kiadási jegyzetek", "url": "https://docs.claude.com/en/release-notes/overview" },
+    { "nev": "Claude Code változásnapló", "url": "https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md" }
+  ],
+  "inspiracio": [
+    { "id": "slyflourish", "nev": "Sly Flourish", "url": "https://slyflourish.com/index.xml", "tema": "dnd", "tipus": "szoveg" },
+    { "id": "alexandrian", "nev": "The Alexandrian", "url": "https://thealexandrian.net/feed", "tema": "dnd", "tipus": "szoveg" },
+    { "id": "dndbeyond", "nev": "D&D Beyond", "url": "https://www.dndbeyond.com/posts.rss", "tema": "dnd", "tipus": "szoveg" },
+    { "id": "parentdata", "nev": "ParentData (Emily Oster)", "url": "https://parentdata.org/feed/", "tema": "neveles", "tipus": "szoveg" },
+    { "id": "developingchild", "nev": "Harvard Center on the Developing Child", "url": "https://developingchild.harvard.edu/feed/", "tema": "neveles", "tipus": "szoveg" },
+    { "id": "lethain", "nev": "Will Larson", "url": "https://lethain.com/feeds/", "tema": "it-vezetes", "tipus": "szoveg" },
+    { "id": "charity", "nev": "Charity Majors", "url": "https://charity.wtf/feed/", "tema": "it-vezetes", "tipus": "szoveg" },
+    { "id": "pragmatic", "nev": "The Pragmatic Engineer", "url": "https://blog.pragmaticengineer.com/rss/", "tema": "it-vezetes", "tipus": "szoveg" },
+    { "id": "simonwillison", "nev": "Simon Willison", "url": "https://simonwillison.net/atom/entries/", "tema": "ai", "tipus": "szoveg" },
+    { "id": "mollick", "nev": "One Useful Thing (Ethan Mollick)", "url": "https://www.oneusefulthing.org/feed", "tema": "ai", "tipus": "szoveg" },
+    { "id": "atlasobscura", "nev": "Atlas Obscura", "url": "https://www.atlasobscura.com/feeds/latest", "tema": "veletlen", "tipus": "szoveg" },
+    { "id": "publicdomainreview", "nev": "The Public Domain Review", "url": "https://publicdomainreview.org/rss.xml", "tema": "veletlen", "tipus": "szoveg" }
+  ],
+  "temak": {
+    "dnd": "D&D",
+    "neveles": "Gyereknevelés",
+    "it-vezetes": "IT-vezetés",
+    "ai": "AI-használat",
+    "veletlen": "Véletlen érdekesség"
+  },
+  "_tiltott_leiras": "Ha egy cím vagy kivonat ezek közül bármelyik szótövet tartalmazza (kis- és nagybetű mindegy), a hír kimarad. Az alapréteg csak ezzel szűr; Claude ezen felül tartalom szerint is.",
+  "tiltott": [
+    "gyilkos", "meggyilk", "megöl", "megölt", "agyonver", "agyonlőtt", "lelőtt", "leszúr", "késel",
+    "erőszak", "megerőszak", "szexuális", "molesztál", "zaklat", "kínoz", "kínzás", "bántalmaz", "pedofil",
+    "holttest", "emberölés", "lövöldözés", "rablás", "kirabol", "elrabol", "emberrabl", "öngyilk",
+    "üldöz", "baleset", "karambol", "elgázol", "frontális", "ittas sofőr", "gázolás",
+    "murder", "killed", "killing", "homicide", "rape", "raped", "sexual assault", "abuse", "harass",
+    "torture", "stabbing", "stabbed", "shooting", "shot dead", "gunman", "kidnap", "suicide", "corpse", "body found",
+    "car chase", "crash kills"
+  ]
+}
