@@ -1,58 +1,10 @@
 // A felület tesztjei láthatatlan böngészőben (Playwright + Chromium), memóriabeli adatbázissal és kitalált időjárással.
-// A valódi Firebase-hez és a netre nem nyúlnak.
-import { test, before, after } from 'node:test';
+// A valódi Firebase-hez és a netre nem nyúlnak. A közös rész: ui-segito.mjs.
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
-// a scripts mappa node_modules-ából (CI), vagy a gépre telepített Playwrightból
-const { chromium } = createRequire(new URL('../scripts/package.json', import.meta.url))('playwright');
+import { useBrowser, newPage, openApp, card, daily, NOW, TODAY, DAY, INDEX } from './ui-segito.mjs';
 
-const ROOT = new URL('../', import.meta.url);
-const INDEX = new URL('index.html', ROOT).href;
-const MOCK = await readFile(new URL('tests/mock-db.js', ROOT), 'utf8');
-const NOW = Date.parse('2026-11-08T07:30:00Z'); // budapesti idő szerint 2026-11-08 8:30
-const TODAY = '2026-11-08';
-const DAY = 86400e3;
-
-const weather = {
-  current: { time: '2026-11-08T08:30', temperature_2m: 6.4, weather_code: 3 },
-  hourly: {
-    time: Array.from({ length: 48 }, (_, i) => `2026-11-0${8 + Math.floor(i / 24)}T${String(i % 24).padStart(2, '0')}:00`),
-    temperature_2m: Array(48).fill(7), precipitation_probability: Array(48).fill(70), weather_code: Array(48).fill(61),
-  },
-  daily: { temperature_2m_max: [9, 8], temperature_2m_min: [2, 1], precipitation_sum: [3.2, 0], precipitation_probability_max: [80, 10], snowfall_sum: [0, 0] },
-};
-
-const card = (id, extra = {}) => ({ id, url: `https://ex.com/${id}`, cim: `Cikk ${id}`, leiras: 'Leírás', forras: 'Sly Flourish', tema: 'dnd', tipus: 'szoveg', feliratos: null, megjelent: NOW - DAY, felveve: NOW - DAY, ...extra });
-
-let browser;
-before(async () => { browser = await chromium.launch(); });
-after(async () => { await browser.close(); });
-
-async function openApp(seed, { tab } = {}) {
-  const page = await browser.newPage();
-  const errors = [];
-  page.on('pageerror', e => errors.push(e.message));
-  await page.addInitScript(`window.KAPITANY_TEST = true; window.KAPITANY_NOW = () => ${NOW};\n${MOCK}`);
-  await page.route('https://fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await page.route('https://api.open-meteo.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(weather) }));
-  await page.route('https://geocoding-api.open-meteo.com/**', r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ results: [{ name: 'Debrecen', admin1: 'Hajdú-Bihar', country: 'Magyarország', latitude: 47.53, longitude: 21.63 }] }) }));
-  await page.goto(INDEX);
-  const db = await page.evaluateHandle(s => { window.__db = window.mockDb(s); window.KapitanyApp.setAuth({ status: 'signedIn', email: 'dori@example.com', db: window.__db }); return window.__db; }, seed);
-  if (tab) await page.click(`nav.tabs button[data-tab=${tab}]`);
-  await page.waitForTimeout(50);
-  return { page, errors, store: () => page.evaluate(() => JSON.parse(JSON.stringify(window.__db.store))), db };
-}
-
-const daily = (extra = {}) => ({
-  [`kapitany_daily/${TODAY}`]: {
-    datum: TODAY, reteg: 'claude', keszult: NOW - 3600e3, zaras: 'Ennyi volt.',
-    rovatok: [{ id: 'itthon', cim: 'Itthon', items: [{ cim: 'Nő a családi pótlék', osszefoglalo: 'A kormány döntött.', miert: 'Két gyereked van.', linkek: [{ nev: 'Telex', url: 'https://telex.hu/a' }, { nev: 'Index', url: 'https://index.hu/a' }] }] }],
-    claudeHirek: [{ cim: 'Új Claude funkció', osszefoglalo: 'Valami új.', mireJo: 'Gyorsabb tervezés.', linkek: [{ nev: 'Anthropic', url: 'https://anthropic.com/news/x' }] }],
-    ...extra,
-  },
-});
+useBrowser();
 
 test('Mai nap: Claude-összefoglaló, források, Claude-újdonság, időjárás-tipp', async () => {
   const { page, errors } = await openApp(daily());
@@ -168,7 +120,7 @@ test('Beállítások: város keresése és mentése, futások ideje', async () =
 });
 
 test('Kilépett állapot: belépés gomb látszik, az app nem', async () => {
-  const page = await browser.newPage();
+  const page = await newPage();
   await page.addInitScript(`window.KAPITANY_TEST = true;`);
   await page.route('https://fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
   await page.goto(INDEX);
@@ -178,4 +130,3 @@ test('Kilépett állapot: belépés gomb látszik, az app nem', async () => {
   await page.close();
 });
 
-void fileURLToPath;

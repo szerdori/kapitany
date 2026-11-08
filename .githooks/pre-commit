@@ -1,0 +1,5 @@
+#!/bin/sh
+# Commit előtt lefuttatja a teszteket. Bekapcsolás (egyszer, a repó mappájában): git config core.hooksPath .githooks
+# (a feltoltes.ps1 és a scripts mappában futtatott npm install ezt magától megteszi).
+# Sürgős esetben kihagyható: git commit --no-verify
+exec "$(git rev-parse --show-toplevel)/.githooks/tesztek.sh" commit
