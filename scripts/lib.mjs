@@ -121,6 +121,7 @@ export function buildCards({ feeds, stems, now = Date.now(), maxAgeDays = 21 }) 
         tema: f.source.tema,
         tipus: f.source.tipus || 'szoveg',
         feliratos: null,
+        oktato: !!f.source.oktato,
         megjelent: Number.isFinite(t) ? t : now,
       });
     }

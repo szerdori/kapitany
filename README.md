@@ -1,10 +1,10 @@
 # Kapitány
 
-Napi fontos dolgok és inspiráció, doomscrolling helyett. Véges: a hírek végén „Ennyi a fontos”, az inspirációból napi 15 kártya, és kész.
+Napi fontos dolgok és inspiráció, doomscrolling helyett. Véges: a hírek végén „Ennyi a fontos”, az inspirációból napi 25 kártya (állítható), és kész.
 
-- **Mai nap:** időjárás (Open-Meteo), hírek rovatonként (Itthon, EU, Világ, Gazdaság) forráslinkekkel, Claude-újdonságok. Bűnügyi és erőszakos hírek nincsenek benne.
-- **Inspiráció:** StumbleUpon-szerű kártyák (D&D, gyereknevelés, IT-vezetés, AI-használat, véletlen érdekesség). A 👍/👎 alapján tanul. **Csendes mód:** csak szöveg és feliratos videó. **Hangos mód:** minden.
-- **Később:** az elmentett cikkek.
+- **Mai nap:** időjárás (Open-Meteo) a mai napra és 3 napra előre napszakonként, figyelmeztetéssel, ha nagy változás jön (lehűlés/melegedés, fagy, havazás, sok eső, erős szél, zivatar); hírek rovatonként (Itthon, EU, Világ, Gazdaság) forráslinkekkel, Claude-újdonságok. Bűnügyi és erőszakos hírek nincsenek benne.
+- **Inspiráció:** görgethető kártyalista (a napi keretig), köztük oktató jellegű írások is, (D&D, gyereknevelés, IT-vezetés, AI-használat, véletlen érdekesség). A 👍/👎 alapján tanul. **Csendes mód:** csak szöveg és feliratos videó. **Hangos mód:** minden.
+- **Napló:** a későbbre mentett cikkek, és minden, amit megnyitottál, megszavaztál vagy átugrottál, szűrhetően. Semmi nem tűnik el.
 
 ## Hogyan működik
 
@@ -78,7 +78,7 @@ A `tests` mappában vannak, és folyamatosan bővülnek: minden új funkcióhoz 
 |---|---|
 | `tests/lib.test.mjs` | az alapréteg logikája: feedek feldolgozása (RSS, RDF, Atom, hibás feedek), tiltott témák szűrése, napi összeállítás, kártyák |
 | `tests/alap.test.mjs` | az alapréteg futása: letöltés, hibás forrás, mentés az adatbázisba (Claude-összefoglaló felülírása nélkül), maga az `alap.mjs` |
-| `tests/ui.test.mjs` | a felület fő útjai láthatatlan böngészőben: Mai nap, Inspiráció, Később, Beállítások |
+| `tests/ui.test.mjs` | a felület fő útjai láthatatlan böngészőben: Mai nap, Inspiráció, Napló, Beállítások |
 | `tests/ui-logika.test.mjs` | az ajánló, az időjárás-tipp, a ritkább állapotok és hibák, és a Firebase-adapter (kitalált Firebase-zel) |
 | `tests/lefedettseg.mjs` | lefuttatja az összeset, és kiírja, a kód hány százalékát járják be |
 
@@ -90,7 +90,7 @@ A tesztek a valódi Firebase-hez és a netre nem nyúlnak.
 
 **Kézzel**, a `scripts` mappában: `npm install`, majd `npm test`. Böngészőnek a Playwright Chromiumát használja (`npx playwright install chromium`); Windowson, ha az nincs letöltve, a gépen lévő Edge-et.
 
-**Lefedettség:** az `npm test` a végén kiírja fájlonként. Egy sor akkor számít lefedettnek, ha minden része lefutott (egy ki nem próbált `if`-ág már nem), tehát a szám inkább szigorú. Ha az összesített sorlefedettség **90%** alá esik, a teszt piros: új kódhoz új teszt kell. Ha a lefedettség tartósan feljebb megy, a küszöb (`--min=90` a `scripts/package.json`-ben) emelhető, de csökkenteni nem érdemes. A nem lefedett sorok listája: `npm run lefedettseg`.
+**Lefedettség:** az `npm test` a végén kiírja fájlonként. Egy sor akkor számít lefedettnek, ha minden része lefutott (egy ki nem próbált `if`-ág már nem), tehát a szám inkább szigorú. Ha az összesített sorlefedettség **97%** alá esik, a teszt piros: új kódhoz új teszt kell. Ha a lefedettség tartósan feljebb megy, a küszöb (`--min=97` a `scripts/package.json`-ben) emelhető, de csökkenteni nem érdemes. A nem lefedett sorok listája: `npm run lefedettseg`.
 
 ## Frissítés
 Minden változtatás után futtasd a projektmappában:

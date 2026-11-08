@@ -129,7 +129,7 @@ if ($Mode -eq 'export') {
   $cards = Find-Since 'kapitany_cards' 'felveve' ($nowMs - 30L * 86400000)
   $result = [ordered]@{
     ma = $today
-    visszajelzesek = @($fb | Sort-Object ido -Descending | Select-Object -First 400 | ForEach-Object { [ordered]@{ szavazat = $_.szavazat; tema = $_.tema; forras = $_.forras; cim = $_.cim; url = $_.url; nap = $_.nap } })
+    visszajelzesek = @($fb | Sort-Object ido -Descending | Select-Object -First 400 | ForEach-Object { [ordered]@{ szavazat = $_.szavazat; olvasva = [bool]$_.olvasva; tema = $_.tema; forras = $_.forras; cim = $_.cim; url = $_.url; nap = $_.nap } })
     korabbiUrlek = @(@($cards | ForEach-Object { $_.url }) + @($fb | ForEach-Object { $_.url }) | Where-Object { $_ } | Sort-Object -Unique)
   }
   [IO.File]::WriteAllText($Out, ($result | ConvertTo-Json -Depth 10), (New-Object Text.UTF8Encoding($false)))

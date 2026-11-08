@@ -14,13 +14,20 @@ export const NOW = Date.parse('2026-11-08T07:30:00Z'); // budapesti idő szerint
 export const TODAY = '2026-11-08';
 export const DAY = 86400e3;
 
+// Open-Meteo-válasz: tegnap (11-07), ma (11-08) és a következő 3 nap, óránként is.
+const DAYS = ['2026-11-07', '2026-11-08', '2026-11-09', '2026-11-10', '2026-11-11'];
 export const weather = {
   current: { time: '2026-11-08T08:30', temperature_2m: 6.4, weather_code: 3 },
   hourly: {
-    time: Array.from({ length: 48 }, (_, i) => `2026-11-0${8 + Math.floor(i / 24)}T${String(i % 24).padStart(2, '0')}:00`),
-    temperature_2m: Array(48).fill(7), precipitation_probability: Array(48).fill(70), weather_code: Array(48).fill(61),
+    time: DAYS.flatMap(d => Array.from({ length: 24 }, (_, h) => `${d}T${String(h).padStart(2, '0')}:00`)),
+    temperature_2m: Array(120).fill(7), precipitation_probability: Array(120).fill(70), weather_code: Array(120).fill(61),
   },
-  daily: { temperature_2m_max: [9, 8], temperature_2m_min: [2, 1], precipitation_sum: [3.2, 0], precipitation_probability_max: [80, 10], snowfall_sum: [0, 0] },
+  daily: {
+    time: DAYS, weather_code: [3, 61, 3, 71, 95],
+    temperature_2m_max: [10, 9, 8, 1, 2], temperature_2m_min: [3, 2, 1, -4, -3],
+    precipitation_sum: [0, 3.2, 0, 2, 14], precipitation_probability_max: [0, 80, 10, 60, 90],
+    snowfall_sum: [0, 0, 0, 3, 0], wind_gusts_10m_max: [20, 30, 25, 40, 75],
+  },
 };
 
 export const card = (id, extra = {}) => ({ id, url: `https://ex.com/${id}`, cim: `Cikk ${id}`, leiras: 'Leírás', forras: 'Sly Flourish', tema: 'dnd', tipus: 'szoveg', feliratos: null, megjelent: NOW - DAY, felveve: NOW - DAY, ...extra });
@@ -57,13 +64,13 @@ export function useBrowser() {
   });
 }
 
-export async function openApp(seed, { tab, weatherStatus = 200, geo } = {}) {
+export async function openApp(seed, { tab, weatherStatus = 200, geo, wx = weather } = {}) {
   const page = await newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(e.message));
   await page.addInitScript(`window.KAPITANY_TEST = true; window.KAPITANY_NOW = () => ${NOW};\n${MOCK}`);
   await page.route('https://fonts.googleapis.com/**', r => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
-  await page.route('https://api.open-meteo.com/**', r => r.fulfill({ status: weatherStatus, contentType: 'application/json', body: JSON.stringify(weather) }));
+  await page.route('https://api.open-meteo.com/**', r => r.fulfill({ status: weatherStatus, contentType: 'application/json', body: JSON.stringify(wx) }));
   await page.route('https://geocoding-api.open-meteo.com/**', r => (geo === 'hiba' ? r.abort() : r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(geo || { results: [{ name: 'Debrecen', admin1: 'Hajdú-Bihar', country: 'Magyarország', latitude: 47.53, longitude: 21.63 }] }) })));
   await page.goto(INDEX);
   const db = await page.evaluateHandle(s => { window.__db = window.mockDb(s); window.KapitanyApp.setAuth({ status: 'signedIn', email: 'dori@example.com', db: window.__db }); return window.__db; }, seed);
