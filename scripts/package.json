@@ -3,7 +3,7 @@
   "description": "A Kapitány alaprétege (GitHub Actions futtatja) és a tesztjei.",
   "type": "module",
   "scripts": {
-    "test": "node ../tests/lefedettseg.mjs --min=90",
+    "test": "node ../tests/lefedettseg.mjs --min=97",
     "lefedettseg": "node ../tests/lefedettseg.mjs --reszletes",
     "prepare": "node -e \"try { require('child_process').execSync('git config core.hooksPath .githooks', { stdio: 'ignore' }) } catch {}\""
   },

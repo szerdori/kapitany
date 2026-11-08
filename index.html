@@ -210,14 +210,6 @@ nav.tabs button[aria-current="page"] { color: var(--accent); }
     [66, '🌧️', 'ónos eső'], [67, '🌧️', 'ónos eső'], [71, '🌨️', 'gyenge havazás'], [73, '🌨️', 'havazás'], [75, '❄️', 'erős havazás'], [77, '🌨️', 'hószemcse'], [80, '🌦️', 'zápor'], [81, '🌧️', 'zápor'], [82, '⛈️', 'heves zápor'],
     [85, '🌨️', 'hózápor'], [86, '❄️', 'erős hózápor'], [95, '⛈️', 'zivatar'], [96, '⛈️', 'zivatar jéggel'], [99, '⛈️', 'zivatar jéggel']];
   const wmo = code => (WMO.find(x => x[0] === code) || [0, '·', '']).slice(1);
-  function weatherTip(d) {
-    const tips = [];
-    if (d.snowfall_sum > 0.2) tips.push('Havazás várható.');
-    if (d.precipitation_probability_max >= 50 || d.precipitation_sum >= 1) tips.push('Vigyél esernyőt.');
-    else tips.push('Esernyő nem kell.');
-    if (d.temperature_2m_min <= -2) tips.push('Fagyos reggel, öltözz rétegesen.');
-    return tips.join(' ');
-  }
   // Tegnap (a változások összevetéséhez), ma és a következő 3 nap.
   async function loadWeather(city) {
     const u = `https://api.open-meteo.com/v1/forecast?latitude=${city.lat}&longitude=${city.lon}&current=temperature_2m,weather_code&hourly=temperature_2m,precipitation_probability,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,snowfall_sum,wind_gusts_10m_max&timezone=Europe%2FBudapest&past_days=1&forecast_days=4`;
@@ -226,7 +218,7 @@ nav.tabs button[aria-current="page"] { color: var(--accent); }
   }
   const KEYS = ['weather_code', 'temperature_2m_max', 'temperature_2m_min', 'precipitation_sum', 'precipitation_probability_max', 'snowfall_sum', 'wind_gusts_10m_max'];
   const dayAt = (w, i) => { const d = { time: w.daily.time ? w.daily.time[i] : '' }; for (const k of KEYS) d[k] = w.daily[k] ? w.daily[k][i] : undefined; return d; };
-  const todayIndex = w => Math.max(0, (w.daily.time || []).indexOf(String(w.current.time || '').slice(0, 10)));
+  const todayIndex = w => Math.max(0, (w.daily.time || []).indexOf(w.current.time.slice(0, 10)));
   function dayName(date, offset) {
     if (offset === 0) return 'ma';
     if (offset === 1) return 'holnap';
@@ -283,7 +275,7 @@ nav.tabs button[aria-current="page"] { color: var(--accent); }
       const [hi] = wmo(w.hourly.weather_code[i]);
       hours.push(`<div><span class="muted">${esc(w.hourly.time[i].slice(11, 16))}</span><b>${hi}</b>${Math.round(w.hourly.temperature_2m[i])}°<div class="muted">${w.hourly.precipitation_probability[i] ?? 0}%</div></div>`);
     }
-    const n = (w.daily.temperature_2m_max || []).length;
+    const n = w.daily.temperature_2m_max.length;
     const ahead = [];
     for (let i = ti + 1; i < n && ahead.length < 3; i++) ahead.push({ d: dayAt(w, i), name: dayName(dayAt(w, i).time, i - ti) });
     const base = ti > 0 ? [dayAt(w, ti - 1)] : [];
@@ -402,7 +394,7 @@ nav.tabs button[aria-current="page"] { color: var(--accent); }
     const today = bpDate();
     const since = bpDate(now() - 7 * DAY);
     S.unsub.push(db.query(COLL.daily, [['datum', '>=', since]]).onSnapshot(docs => {
-      const list = docs.map(d => d.data()).sort((a, b) => (a.datum < b.datum ? 1 : -1));
+      const list = docs.map(d => d.data()).sort((a, b) => b.datum.localeCompare(a.datum));
       S.daily = list[0] || null; if (S.tab === 'ma') render();
     }));
     S.unsub.push(db.query(COLL.cards, [['felveve', '>=', now() - 21 * DAY]]).onSnapshot(docs => {
@@ -514,7 +506,7 @@ if (window.KAPITANY_TEST) {
     },
     doc(path) {
       const r = F.doc(fs, path);
-      return { set: (d, o) => F.setDoc(r, d, o || {}), onSnapshot: next => F.onSnapshot(r, s => next(snap(s)), err => console.warn(path, err.code)) };
+      return { set: (d, o) => F.setDoc(r, d, o), onSnapshot: next => F.onSnapshot(r, s => next(snap(s)), err => console.warn(path, err.code)) };
     },
   };
   const provider = new A.GoogleAuthProvider();

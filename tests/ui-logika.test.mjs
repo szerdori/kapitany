@@ -2,7 +2,7 @@
 // valamint a Firebase-adapter (kitalált Firebase-modulokkal, a valódi szerverhez nem nyúl).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { useBrowser, newPage, openApp, card, daily, NOW, TODAY, DAY, INDEX } from './ui-segito.mjs';
+import { useBrowser, newPage, openApp, card, daily, weather, NOW, TODAY, DAY, INDEX } from './ui-segito.mjs';
 
 useBrowser();
 
@@ -434,6 +434,133 @@ test('Inspiráció: a megnyitás mentési hibája csendben marad, eltűnt kárty
   await page.click('button[data-act=vote][data-v=fel]');
   await page.click('[data-act=open]');
   await wait(page);
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+// ---- Hiányos adatok és ritka ágak (lefedettség) ----
+
+test('hiányos adatok: rovatok, linkek, kártyamezők és naplóadatok nélkül sem törik el', async () => {
+  const seed = {
+    [`kapitany_daily/${TODAY}`]: { datum: TODAY, reteg: 'claude', keszult: NOW, rovatok: [{ id: 'eu', cim: 'EU' }, { id: 'vilag', cim: 'Világ', items: [{ cim: 'Link nélküli hír' }, { cim: null, linkek: [{ nev: 'X' }] }] }] },
+    'kapitany_cards/h1': { tema: 'ismeretlen', felveve: NOW },
+    'kapitany_feedback/n1': { szavazat: 'kesobb' },
+    'kapitany_feedback/n2': { szavazat: 'kesobb' },
+  };
+  const { page, errors, store } = await openApp(seed);
+  assert.match(await page.textContent('#view'), /Link nélküli hír/);
+  assert.equal(await page.getAttribute('.news a', 'href'), '#', 'URL nélküli link nem kattintható sehová');
+  await page.click('nav.tabs button[data-tab=insp]');
+  await wait(page);
+  assert.match(await page.textContent('[data-k=card] .meta'), /ismeretlen/);
+  await page.click('button[data-act=vote][data-v=fel]');
+  await wait(page);
+  assert.deepEqual((await store())['kapitany_feedback/h1'], { tema: 'ismeretlen', forras: '', ido: NOW, nap: TODAY, cim: '', url: '', szavazat: 'fel', kesz: false });
+  await page.click('nav.tabs button[data-tab=naplo]');
+  await wait(page);
+  assert.equal(await page.locator('ul.later li').count(), 2, 'dátum és cím nélküli mentett elemek is látszanak');
+  await page.click('button[data-act=naplo][data-v=minden]');
+  await wait(page);
+  assert.equal(await page.locator('ul.later li').count(), 3);
+  // nem a városkereső űrlap elküldése nem csinál semmit
+  await page.evaluate(() => { const f = document.createElement('form'); document.body.append(f); f.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); f.remove(); });
+  // e-mail nélküli fiók és ország nélküli találat
+  await page.evaluate(() => window.KapitanyApp.setAuth({ status: 'signedIn', db: window.__db }));
+  await page.click('nav.tabs button[data-tab=beall]');
+  await wait(page);
+  assert.equal(await page.textContent('.card.row .small'), '');
+  assert.deepEqual(errors, []);
+  await page.close();
+  const g = await openApp({}, { tab: 'beall', geo: { results: [{ name: 'Valahol', latitude: 1, longitude: 2 }] } });
+  await g.page.fill('form[data-form=city] input', 'Valahol');
+  await g.page.click('form[data-form=city] button');
+  await wait(g.page);
+  assert.match(await g.page.textContent('.results'), /Valahol\s*\(\)/);
+  await g.page.close();
+});
+
+test('Inspiráció: a negyedik hely felfedezés, és ezt a kártyán jelzi', async () => {
+  const seed = {};
+  for (let i = 0; i < 8; i++) seed[`kapitany_cards/d${i}`] = card('d' + i);
+  const { page } = await openApp(seed, { tab: 'insp' });
+  assert.equal(await page.locator('[data-k=card]').count(), 8);
+  assert.match(await page.textContent('[data-k=card]:nth-child(4) .meta'), /felfedezés/);
+  assert.match(await page.textContent('[data-k=card]:nth-child(4) .why'), /Véletlen felfedezés/);
+  await page.close();
+});
+
+test('Napló: a Kész csak a kiválasztott elemet zárja le', async () => {
+  const fb = (cim, ido) => ({ szavazat: 'kesobb', cim, url: 'https://x/' + cim, forras: 'F', ido, nap: TODAY });
+  const { page, store } = await openApp({ 'kapitany_feedback/a': fb('A', NOW), 'kapitany_feedback/b': fb('B', NOW - 1) }, { tab: 'naplo' });
+  await page.click('li[data-id=a] button[data-act=done]');
+  await wait(page);
+  const s = await store();
+  assert.equal(s['kapitany_feedback/a'].kesz, true);
+  assert.equal(s['kapitany_feedback/b'].kesz, undefined);
+  assert.deepEqual(await page.locator('ul.later a').allTextContents(), ['B']);
+  await page.close();
+});
+
+test('időjárás: hiányzó esőesély 0%, nyugodt időben nincs figyelmeztetés, egynapos válasznál nincs előrejelzés-blokk', async () => {
+  const wx = {
+    current: { time: '2026-11-08T08:30', temperature_2m: 6, weather_code: 0 },
+    hourly: { time: ['2026-11-08T09:00', '2026-11-08T12:00'], temperature_2m: [6, 8], precipitation_probability: [null, null], weather_code: [0, 0] },
+    daily: { time: ['2026-11-08'], weather_code: [0], temperature_2m_max: [9], temperature_2m_min: [2], precipitation_sum: [0], precipitation_probability_max: [0], snowfall_sum: [0], wind_gusts_10m_max: [10] },
+  };
+  const { page, errors } = await openApp({}, { wx });
+  assert.match(await page.textContent('.wx-hours'), /0%/);
+  assert.equal(await page.locator('[data-k=wx-alerts]').count(), 0);
+  assert.equal(await page.locator('[data-k=wx-days]').count(), 0);
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('értesítés: a felugró üzenet pár másodperc múlva eltűnik', async () => {
+  const { page } = await openApp({}, { tab: 'beall' });
+  await page.fill('#limit', '10');
+  await page.dispatchEvent('#limit', 'change');
+  assert.equal(await page.isVisible('#toast'), true);
+  await page.waitForTimeout(2400);
+  assert.equal(await page.isVisible('#toast'), false);
+  await page.close();
+});
+
+test('figyelés: a hibát dobó leiratkozás sem akasztja meg a kilépést és az újra belépést', async () => {
+  const { page, errors } = await openApp({});
+  await page.evaluate(() => {
+    const db = window.__db;
+    const bad = { ...db, query: (c, w) => ({ onSnapshot: n => { db.query(c, w).onSnapshot(n); return () => { throw new Error('x'); }; } }) };
+    window.KapitanyApp.setAuth({ status: 'signedIn', email: 'a@b.c', db: bad });
+    window.KapitanyApp.setAuth({ status: 'signedIn', email: 'a@b.c', db: bad });
+    window.KapitanyApp.setAuth({ status: 'signedOut' });
+  });
+  await wait(page);
+  assert.equal(await page.isVisible('button[data-act=signin]'), true);
+  assert.deepEqual(errors, []);
+  await page.close();
+});
+
+test('valódi óra: teszt-időpont nélkül a mostani időt használja', async () => {
+  const page = await newPage();
+  await fonts(page);
+  await page.addInitScript('window.KAPITANY_TEST = true;');
+  await page.goto(INDEX);
+  const w = await page.evaluate(() => window.KapitanyApp._test.weights([{ szavazat: 'fel', tema: 'dnd', ido: Date.now() - 60e3 }]));
+  assert.ok(w.tema.dnd > 0.99 && w.tema.dnd <= 1);
+  await page.close();
+});
+
+test('hiányos adatok: rovatok nélküli napi anyag, téma nélküli kártya, napszak esőesély nélkül', async () => {
+  const wx = JSON.parse(JSON.stringify(weather));
+  wx.hourly.precipitation_probability = wx.hourly.precipitation_probability.map(() => null);
+  const { page, errors, store } = await openApp({ [`kapitany_daily/${TODAY}`]: { datum: TODAY, reteg: 'alap', keszult: NOW }, 'kapitany_cards/t1': { felveve: NOW, url: 'https://x/t1', cim: 'Téma nélkül' } }, { wx });
+  assert.match(await page.textContent('#view'), /Ennyi a fontos/);
+  assert.match(await page.textContent('[data-k=wx-day] .wx-slots'), /0%/);
+  await page.click('nav.tabs button[data-tab=insp]');
+  await wait(page);
+  await page.click('button[data-act=vote][data-v=le]');
+  await wait(page);
+  assert.equal((await store())['kapitany_feedback/t1'].tema, '');
   assert.deepEqual(errors, []);
   await page.close();
 });

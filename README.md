@@ -90,7 +90,7 @@ A tesztek a valódi Firebase-hez és a netre nem nyúlnak.
 
 **Kézzel**, a `scripts` mappában: `npm install`, majd `npm test`. Böngészőnek a Playwright Chromiumát használja (`npx playwright install chromium`); Windowson, ha az nincs letöltve, a gépen lévő Edge-et.
 
-**Lefedettség:** az `npm test` a végén kiírja fájlonként. Egy sor akkor számít lefedettnek, ha minden része lefutott (egy ki nem próbált `if`-ág már nem), tehát a szám inkább szigorú. Ha az összesített sorlefedettség **90%** alá esik, a teszt piros: új kódhoz új teszt kell. Ha a lefedettség tartósan feljebb megy, a küszöb (`--min=90` a `scripts/package.json`-ben) emelhető, de csökkenteni nem érdemes. A nem lefedett sorok listája: `npm run lefedettseg`.
+**Lefedettség:** az `npm test` a végén kiírja fájlonként. Egy sor akkor számít lefedettnek, ha minden része lefutott (egy ki nem próbált `if`-ág már nem), tehát a szám inkább szigorú. Ha az összesített sorlefedettség **97%** alá esik, a teszt piros: új kódhoz új teszt kell. Ha a lefedettség tartósan feljebb megy, a küszöb (`--min=97` a `scripts/package.json`-ben) emelhető, de csökkenteni nem érdemes. A nem lefedett sorok listája: `npm run lefedettseg`.
 
 ## Frissítés
 Minden változtatás után futtasd a projektmappában:

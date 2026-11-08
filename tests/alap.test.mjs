@@ -118,3 +118,15 @@ test('alap.mjs: kulcs nélkül próbafutást csinál, és nem tölti be a fireba
   assert.match(res.stdout, /Hírforrások:/);
   assert.match(res.stdout, /Próbafutás \(nincs FIREBASE_SERVICE_ACCOUNT\)/);
 });
+
+test('alap.mjs: kulccsal a firebase-admint tölti be, és a Firestore-ba ment', () => {
+  const env = { ...process.env, FIREBASE_SERVICE_ACCOUNT: JSON.stringify({ project_id: 'proba' }) };
+  const res = spawnSync(process.execPath, ['--import', fileURLToPath(new URL('./hamis-firebase-admin.mjs', import.meta.url)), fileURLToPath(new URL('../scripts/alap.mjs', import.meta.url))], { env, encoding: 'utf8' });
+  assert.equal(res.status, 0, res.stderr);
+  assert.match(res.stdout, /Napi alapváltozat elmentve/);
+  const saved = JSON.parse(res.stdout.split('MENTVE ')[1]);
+  assert.deepEqual(saved.init, { credential: { cert: 'proba' } });
+  assert.ok(saved.kulcsok.includes('kapitany_meta/alap'));
+  assert.ok(saved.kulcsok.some(k => k.startsWith('kapitany_daily/')));
+  assert.ok(saved.kulcsok.some(k => k.startsWith('kapitany_cards/')));
+});

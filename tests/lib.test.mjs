@@ -194,3 +194,17 @@ test('kártyák: régi és tiltott kimarad, forrásonként legfeljebb 10, dátum
   assert.equal(nd.leiras.length, 280);
   assert.equal(nd.tipus, 'szoveg', 'típus nélküli forrás szövegnek számít');
 });
+
+test('feed-mezők különleges alakjai: ismétlődő cím, attribútumos link, üres objektum, logikai érték, link nélküli Atom-elem', () => {
+  const rss2 = `<rss><channel>
+    <item><title>Első</title><title>Második</title><link href="https://x/attr"/><description>true</description></item>
+    <item><title><![CDATA[]]></title><link>https://x/2</link></item>
+  </channel></rss>`;
+  const items = parseFeed(rss2);
+  assert.equal(items.length, 1);
+  assert.equal(items[0].title, 'Első', 'több cím közül az első');
+  assert.equal(items[0].link, 'https://x/attr', 'attribútumban megadott link');
+  assert.equal(items[0].summary, '', 'logikai értékké alakult kivonat üres szöveg');
+  const atom = `<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>Nincs link</title></entry><entry><title>Üres link</title><link rel="alternate"/></entry><entry><title><b/></title><link href="https://x/b"/></entry></feed>`;
+  assert.deepEqual(parseFeed(atom), [], 'link és használható cím nélkül kiesik');
+});
