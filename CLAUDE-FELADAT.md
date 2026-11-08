@@ -7,6 +7,14 @@ Az app a GitHub Pages-en fut Claude nélkül is; amit itt feltöltesz, az aznapr
 
 A mappa: a `kapitany` repó helyi másolata. A parancsokat PowerShellben, ebben a mappában futtasd.
 
+## 0. Friss forráslista
+
+```
+git pull --ff-only
+```
+
+Ha nem sikerül (pl. nincs net vagy helyi módosítás van), nem baj: folytasd a meglévő fájlokkal.
+
 ## 1. Kell-e ma futni?
 
 ```
