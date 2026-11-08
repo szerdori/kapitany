@@ -29,7 +29,8 @@ Minden adat a MomAssistant Firebase-projektjében van, külön gyűjteményekben
 | `CLAUDE-FELADAT.md` | a napi Claude-feladat leírása |
 | `scripts/claude-feltoltes.ps1` | ezzel ír a Claude-feladat a Firestore-ba |
 | `scripts/alap.mjs`, `scripts/lib.mjs` | az alapréteg (GitHub Actions futtatja) |
-| `tests/` | tesztek (feltöltéskor a GitHubon futnak) |
+| `tests/` | tesztek (commit előtt a gépen, feltöltéskor a GitHubon futnak) |
+| `.githooks/` | commit és push előtt lefuttatja a teszteket |
 
 ## Első beállítás
 
@@ -71,9 +72,25 @@ Nyisd meg a címet a telefonon, lépj be Google-fiókkal, majd:
 - A kulcsszavas szűrő szándékosan szigorú: kétes esetben inkább kihagy egy hírt. Emiatt Claude nélkül a háborús hírek egy része is kimaradhat; Claude tényszerűen beveszi őket.
 
 ## Tesztek
-A `tests` mappában vannak: az alapréteg logikája (feedek feldolgozása, szűrés, napi összeállítás) és a felület (láthatatlan böngészőben, kitalált adatbázissal, a valódi Firebase-hez nem nyúlnak). Feltöltéskor a GitHub automatikusan lefuttatja őket: **Actions → Tesztek**.
+A `tests` mappában vannak, és folyamatosan bővülnek: minden új funkcióhoz jár teszt.
 
-Helyben (ha van Node.js): a `scripts` mappában `npm install --no-save fast-xml-parser@4.5.0 playwright@1.48.2`, `npx playwright install chromium`, majd `npm test`.
+| Fájl | Mit tesztel |
+|---|---|
+| `tests/lib.test.mjs` | az alapréteg logikája: feedek feldolgozása (RSS, RDF, Atom, hibás feedek), tiltott témák szűrése, napi összeállítás, kártyák |
+| `tests/alap.test.mjs` | az alapréteg futása: letöltés, hibás forrás, mentés az adatbázisba (Claude-összefoglaló felülírása nélkül), maga az `alap.mjs` |
+| `tests/ui.test.mjs` | a felület fő útjai láthatatlan böngészőben: Mai nap, Inspiráció, Később, Beállítások |
+| `tests/ui-logika.test.mjs` | az ajánló, az időjárás-tipp, a ritkább állapotok és hibák, és a Firebase-adapter (kitalált Firebase-zel) |
+| `tests/lefedettseg.mjs` | lefuttatja az összeset, és kiírja, a kód hány százalékát járják be |
+
+A tesztek a valódi Firebase-hez és a netre nem nyúlnak.
+
+**Mikor futnak:**
+- **commit és push előtt a gépeden** (`.githooks`): ha elbuknak, nem lesz commit, illetve feltöltés. A `feltoltes.ps1` ezt magától bekapcsolja; kézzel: `git config core.hooksPath .githooks`. Első alkalommal a hook maga telepíti a kellő csomagokat. Ha a gépen nincs Node.js, a hook szól, és átengedi (a GitHub ettől még lefuttatja). Sürgős esetben kihagyható: `--no-verify`.
+- **feltöltés után a GitHubon:** **Actions → Tesztek**; a lefedettségi táblázat a futás összefoglalójában látszik.
+
+**Kézzel**, a `scripts` mappában: `npm install`, majd `npm test`. Böngészőnek a Playwright Chromiumát használja (`npx playwright install chromium`); Windowson, ha az nincs letöltve, a gépen lévő Edge-et.
+
+**Lefedettség:** az `npm test` a végén kiírja fájlonként. Egy sor akkor számít lefedettnek, ha minden része lefutott (egy ki nem próbált `if`-ág már nem), tehát a szám inkább szigorú. Ha az összesített sorlefedettség **90%** alá esik, a teszt piros: új kódhoz új teszt kell. Ha a lefedettség tartósan feljebb megy, a küszöb (`--min=90` a `scripts/package.json`-ben) emelhető, de csökkenteni nem érdemes. A nem lefedett sorok listája: `npm run lefedettseg`.
 
 ## Frissítés
 Minden változtatás után futtasd a projektmappában:

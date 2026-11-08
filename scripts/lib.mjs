@@ -127,3 +127,66 @@ export function buildCards({ feeds, stems, now = Date.now(), maxAgeDays = 21 }) 
   }
   return out;
 }
+
+// ---- Az alapréteg futása (az alap.mjs csak ezt hívja; a hálózat és az adatbázis kívülről jön, így tesztelhető) ----
+
+const UA = 'Kapitany-hirolvaso/1.0 (+https://szerdori.github.io/kapitany/)';
+
+// Egy forrás letöltése; hiba esetén üres listát ad, és csak a forrás nevét írja a naplóba (az nyilvános).
+export async function fetchFeed(source, { fetchImpl = fetch, log = console.log, timeoutMs = 20000 } = {}) {
+  try {
+    const res = await fetchImpl(source.url, {
+      headers: { 'User-Agent': UA, Accept: 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*' },
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+    if (!res.ok) { log(`  ${source.nev}: HTTP ${res.status}`); return { source, items: [] }; }
+    const items = parseFeed(await res.text());
+    log(`  ${source.nev}: ${items.length} elem`);
+    return { source, items };
+  } catch (e) {
+    log(`  ${source.nev}: nem érhető el (${e.name})`);
+    return { source, items: [] };
+  }
+}
+
+const countNews = daily => daily.rovatok.reduce((n, r) => n + r.items.length, 0);
+
+// Mentés a Firestore-ba (firebase-admin felületű db). A Claude-összefoglalót nem írja felül,
+// a kártyákat csak akkor veszi fel, ha még nincsenek meg.
+export async function saveAlap({ db, daily, cards, today, now = Date.now, log = console.log }) {
+  const dailyRef = db.collection(COLL.daily).doc(today);
+  const existing = await dailyRef.get();
+  let dailySaved = false;
+  if (existing.exists && existing.data().reteg === 'claude') {
+    log('Mára már van Claude-összefoglaló, a napi hírekhez nem nyúlok.');
+  } else {
+    await dailyRef.set({ ...daily, datum: today, keszult: now() });
+    dailySaved = true;
+    log(`Napi alapváltozat elmentve: ${countNews(daily)} hír.`);
+  }
+  let added = 0;
+  for (const c of cards) {
+    try { await db.collection(COLL.cards).doc(c.id).create({ ...c, reteg: 'alap', felveve: now() }); added++; }
+    catch (e) { if (e.code !== 6) throw e; } // 6 = ALREADY_EXISTS: korábban már felvettük
+  }
+  await db.collection(COLL.meta).doc('alap').set({ utolsoFutas: now() });
+  log(`Kártyák: ${added} új, ${cards.length - added} már megvolt.`);
+  return { dailySaved, added };
+}
+
+// A teljes napi futás. getDb: aszinkron függvény, ami a Firestore-t adja; ha nincs, csak próbafutás.
+export async function runAlap({ sources, fetchImpl = fetch, getDb = null, now = Date.now, log = console.log }) {
+  const opts = { fetchImpl, log };
+  log('Hírforrások:');
+  const newsFeeds = await Promise.all(sources.hirek.map(s => fetchFeed(s, opts)));
+  log('Inspirációs források:');
+  const inspFeeds = await Promise.all(sources.inspiracio.map(s => fetchFeed(s, opts)));
+  const daily = buildDaily({ feeds: newsFeeds, stems: sources.tiltott, now: now() });
+  const cards = buildCards({ feeds: inspFeeds, stems: sources.tiltott, now: now() });
+  if (!getDb) {
+    log(`Próbafutás (nincs FIREBASE_SERVICE_ACCOUNT): ${countNews(daily)} hír, ${cards.length} kártya.`);
+    return { proba: true, daily, cards };
+  }
+  const saved = await saveAlap({ db: await getDb(), daily, cards, today: budapestDate(new Date(now())), now, log });
+  return { proba: false, daily, cards, ...saved };
+}

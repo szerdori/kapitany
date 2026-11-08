@@ -1,0 +1,3 @@
+#!/bin/sh
+# Push előtt is lefuttatja a teszteket (ha a commit más úton, hook nélkül készült). Kihagyás: git push --no-verify
+exec "$(git rev-parse --show-toplevel)/.githooks/tesztek.sh" push
