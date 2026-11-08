@@ -73,6 +73,9 @@ test('kártyák: azonosító az URL-ből, téma és típus a forrásból', () =>
   assert.equal(cards[0].id.length, 20);
   assert.equal(cards[0].tema, 'dnd');
   assert.equal(cards[0].tipus, 'szoveg');
+  assert.equal(cards[0].oktato, false);
+  const edu = buildCards({ feeds: [{ source: sources.inspiracio.find(s => s.id === 'fowler'), items: parseFeed(rss([{ t: 'Refactoring', l: 'https://martinfowler.com/r.html', d: ago(5) }])) }], stems: sources.tiltott, now: NOW });
+  assert.equal(edu[0].oktato, true, 'az oktató forrás kártyája oktató jelölést kap');
 });
 
 test('a kártya-azonosító megegyezik a PowerShell-feltöltőével (SHA-1, első 20 hex)', () => {
@@ -88,6 +91,11 @@ test('budapesti dátum', () => {
 test('a sources.json minden forrása teljes', () => {
   for (const h of sources.hirek) assert.ok(h.id && h.nev && /^https:/.test(h.url) && ['itthon', 'eu', 'vilag', 'gazdasag', 'claude'].includes(h.rovat), h.id);
   for (const i of sources.inspiracio) assert.ok(i.id && i.nev && /^https:/.test(i.url) && sources.temak[i.tema] && ['szoveg', 'video', 'podcast'].includes(i.tipus), i.id);
+  for (const i of sources.inspiracio) assert.ok(i.oktato === undefined || typeof i.oktato === 'boolean', i.id);
+  assert.equal(new Set(sources.inspiracio.map(i => i.id)).size, sources.inspiracio.length, 'egyedi azonosítók');
+  // Dóri kérése: regisztrációt (akár ingyeneset) vagy előfizetést kérő forrás nem lehet a listán
+  assert.ok(!sources.inspiracio.some(i => /parentdata|medium\.com|leaddev/.test(i.url)), 'regisztrációs forrás');
+  for (const t of Object.keys(sources.temak)) assert.ok(sources.inspiracio.filter(i => i.tema === t).length >= 3, `legalább 3 forrás: ${t}`);
 });
 
 // ---- Szélsőséges feedek és ágak ----

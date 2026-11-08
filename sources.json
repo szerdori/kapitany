@@ -1,5 +1,5 @@
 {
-  "_leiras": "A Kapitány forrásai. Az alapréteg (GitHub Actions) és a Claude-réteg is innen dolgozik. Bátran szerkeszthető: új sor = új forrás, törölt sor = kimarad.",
+  "_leiras": "A Kapitány forrásai. Az alapréteg (GitHub Actions) és a Claude-réteg is innen dolgozik. Bátran szerkeszthető: új sor = új forrás, törölt sor = kimarad. Csak regisztráció és fizetőfal nélkül olvasható forrás kerülhet ide. \"oktato\": true = tanító jellegű írások (útmutató, magyarázat).",
   "varos": { "nev": "Budapest", "lat": 47.4979, "lon": 19.0402 },
   "hirek": [
     { "id": "telex", "nev": "Telex", "url": "https://telex.hu/rss", "rovat": "itthon" },
@@ -25,14 +25,28 @@
     { "id": "slyflourish", "nev": "Sly Flourish", "url": "https://slyflourish.com/index.xml", "tema": "dnd", "tipus": "szoveg" },
     { "id": "alexandrian", "nev": "The Alexandrian", "url": "https://thealexandrian.net/feed", "tema": "dnd", "tipus": "szoveg" },
     { "id": "dndbeyond", "nev": "D&D Beyond", "url": "https://www.dndbeyond.com/posts.rss", "tema": "dnd", "tipus": "szoveg" },
-    { "id": "parentdata", "nev": "ParentData (Emily Oster)", "url": "https://parentdata.org/feed/", "tema": "neveles", "tipus": "szoveg" },
+    { "id": "gnomestew", "nev": "Gnome Stew", "url": "https://gnomestew.com/feed/", "tema": "dnd", "tipus": "szoveg", "oktato": true },
+    { "id": "sciencedaily-child", "nev": "ScienceDaily: gyermekfejlődés", "url": "https://www.sciencedaily.com/rss/mind_brain/child_development.xml", "tema": "neveles", "tipus": "szoveg" },
+    { "id": "greatergood", "nev": "Greater Good (UC Berkeley)", "url": "https://greatergood.berkeley.edu/site/rss/articles", "tema": "neveles", "tipus": "szoveg" },
+    { "id": "childmind", "nev": "Child Mind Institute", "url": "https://childmind.org/feed/", "tema": "neveles", "tipus": "szoveg", "oktato": true },
     { "id": "lethain", "nev": "Will Larson", "url": "https://lethain.com/feeds/", "tema": "it-vezetes", "tipus": "szoveg" },
     { "id": "charity", "nev": "Charity Majors", "url": "https://charity.wtf/feed/", "tema": "it-vezetes", "tipus": "szoveg" },
+    { "id": "rands", "nev": "Rands in Repose", "url": "https://randsinrepose.com/feed/", "tema": "it-vezetes", "tipus": "szoveg" },
+    { "id": "fowler", "nev": "Martin Fowler", "url": "https://martinfowler.com/feed.atom", "tema": "it-vezetes", "tipus": "szoveg", "oktato": true },
+    { "id": "jvns", "nev": "Julia Evans", "url": "https://jvns.ca/atom.xml", "tema": "it-vezetes", "tipus": "szoveg", "oktato": true },
     { "id": "pragmatic", "nev": "The Pragmatic Engineer", "url": "https://blog.pragmaticengineer.com/rss/", "tema": "it-vezetes", "tipus": "szoveg" },
     { "id": "simonwillison", "nev": "Simon Willison", "url": "https://simonwillison.net/atom/entries/", "tema": "ai", "tipus": "szoveg" },
     { "id": "mollick", "nev": "One Useful Thing (Ethan Mollick)", "url": "https://www.oneusefulthing.org/feed", "tema": "ai", "tipus": "szoveg" },
+    { "id": "hamel", "nev": "Hamel Husain", "url": "https://hamel.dev/index.xml", "tema": "ai", "tipus": "szoveg", "oktato": true },
+    { "id": "eugeneyan", "nev": "Eugene Yan", "url": "https://eugeneyan.com/rss/", "tema": "ai", "tipus": "szoveg", "oktato": true },
     { "id": "atlasobscura", "nev": "Atlas Obscura", "url": "https://www.atlasobscura.com/feeds/latest", "tema": "veletlen", "tipus": "szoveg" },
-    { "id": "publicdomainreview", "nev": "The Public Domain Review", "url": "https://publicdomainreview.org/rss.xml", "tema": "veletlen", "tipus": "szoveg" }
+    { "id": "publicdomainreview", "nev": "The Public Domain Review", "url": "https://publicdomainreview.org/rss.xml", "tema": "veletlen", "tipus": "szoveg" },
+    { "id": "quanta", "nev": "Quanta Magazine", "url": "https://www.quantamagazine.org/feed/", "tema": "veletlen", "tipus": "szoveg", "oktato": true },
+    { "id": "aeon", "nev": "Aeon", "url": "https://aeon.co/feed.rss", "tema": "veletlen", "tipus": "szoveg" },
+    { "id": "psyche", "nev": "Psyche", "url": "https://psyche.co/feed", "tema": "veletlen", "tipus": "szoveg", "oktato": true },
+    { "id": "owid", "nev": "Our World in Data", "url": "https://ourworldindata.org/atom.xml", "tema": "veletlen", "tipus": "szoveg", "oktato": true },
+    { "id": "futilitycloset", "nev": "Futility Closet", "url": "https://www.futilitycloset.com/feed/", "tema": "veletlen", "tipus": "szoveg" },
+    { "id": "qubit", "nev": "Qubit", "url": "https://qubit.hu/feed", "tema": "veletlen", "tipus": "szoveg" }
   ],
   "temak": {
     "dnd": "D&D",

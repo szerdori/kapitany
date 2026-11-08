@@ -33,7 +33,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\claude-feltoltes.ps1
 (A `tmp` mappát hozd létre, ha nincs. A `tmp` nem kerül a repóba.)
 
 A `tmp\visszajelzes.json`-ban:
-- `visszajelzesek`: Dóri szavazatai a korábbi kártyákra (`fel` = tetszett, `le` = nem, `ugras` = átugrotta, `kesobb` = elmentette). Ebből tudod, milyen témák, források és milyen jellegű írások tetszenek neki.
+- `visszajelzesek`: Dóri szavazatai a korábbi kártyákra (`fel` = tetszett, `le` = nem, `ugras` = átugrotta, `kesobb` = elmentette; ha `olvasva` is van, meg is nyitotta). Ebből tudod, milyen témák, források és milyen jellegű írások tetszenek neki.
 - `korabbiUrlek`: ezeket már látta vagy megkapta, ne ajánld újra.
 
 ## 3. Hírek összegyűjtése
@@ -52,12 +52,14 @@ A Claude-újdonságokhoz nézd meg a `claudeOldalak` listát.
 
 **Stílus:** magyarul, semlegesen, értékelés nélkül. Csak abból írj, amit a forrásban ténylegesen elolvastál. Ha a lapok másképp írják le ugyanazt, jelezd egy félmondatban. Ugyanaz a hír több forrásból = egy tétel, az összes forráslinkkel.
 
-Rovatonként 3–5 hír. Minden hírnél egy rövid „miért számít” sor: miért érintheti Dórit. Ha ilyen nem írható, a hír ne kerüljön be.
+Rovatonként 3–5 hír. Minden hírnél egy „hogyan hat rád” rész (`miert`): 2–4 mondat arról, konkrétan hogyan érintheti Dórit és a családját (pénz, adók, gyerekek, oktatás, egészségügy, közlekedés, munka, IT/AI szakma), mikortól és mekkora valószínűséggel. Ha nem tudni még biztosan, írd meg, mitől függ. Ha ilyen nem írható, a hír ne kerüljön be.
 
 ## 4. Inspirációs kártyák
 
-Válassz 15–20 kártyát. Témák: D&D, gyereknevelés, IT-vezetés, AI-használat, plusz 3–4 véletlen érdekesség.
-- Forrás: a `sources.json` `inspiracio` listája, de keresd is a jót azon túl.
+Válassz 25–35 kártyát (Dóri görgethető listában látja őket). Témák: D&D, gyereknevelés, IT-vezetés, AI-használat, plusz 4–6 véletlen érdekesség.
+- Forrás: a `sources.json` `inspiracio` listája, de keresd is a jót azon túl. Témánként legalább 3 különböző forrásból válogass.
+- **Csak regisztráció nélkül olvasható:** Dóri nem szeretne regisztrálni, még ingyenesen sem. Ne ajánlj olyat, ami belépést, (ingyenes) feliratkozást vagy előfizetést kér a teljes szöveghez (pl. ParentData, Medium fizetős cikkek, LeadDev).
+- **Oktató jelleg:** legyen köztük 5–8 tanító írás vagy videó (útmutató, magyarázat, „hogyan csináld”, kurzusrészlet); ezeket `"oktato": true`-val jelöld.
 - **Gyereknevelés:** csak bizonyítékalapú forrásból (kutatás, szakmai szervezet, kutató szerző). Tudományos alap nélküli trendek, influenszer-tanácsok nem.
 - Ne ajánlj olyat, ami a `korabbiUrlek`-ben van.
 - A visszajelzések alapján súlyozz: több abból, ami tetszett, kevesebb abból, amit elutasított; a véletlen érdekesség maradjon.
@@ -71,7 +73,7 @@ Válassz 15–20 kártyát. Témák: D&D, gyereknevelés, IT-vezetés, AI-haszn�
 {
   "rovatok": [
     { "id": "itthon", "cim": "Itthon", "items": [
-      { "cim": "Rövid magyar cím", "osszefoglalo": "2–3 mondat.", "miert": "Miért érintheti Dórit, egy félmondat.",
+      { "cim": "Rövid magyar cím", "osszefoglalo": "2–3 mondat.", "miert": "Hogyan hat Dórira: 2–4 mondat, konkrétan.",
         "linkek": [ { "nev": "Telex", "url": "https://..." }, { "nev": "Index", "url": "https://..." } ] }
     ] },
     { "id": "eu", "cim": "Európai Unió", "items": [] },
@@ -92,7 +94,7 @@ A `claudeHirek` lista üres, ha az előző futás óta nem volt Claude-újdonsá
 ```json
 [
   { "url": "https://...", "cim": "Eredeti cím", "cimHu": "Magyar cím", "leirasHu": "1–2 mondatos magyar ismertető.",
-    "forras": "Sly Flourish", "tema": "dnd", "tipus": "szoveg", "feliratos": null, "percek": 6,
+    "forras": "Sly Flourish", "tema": "dnd", "tipus": "szoveg", "feliratos": null, "oktato": true, "percek": 6,
     "miert": "Mert tetszett a múlt heti kalandelőkészítős cikk." }
 ]
 ```

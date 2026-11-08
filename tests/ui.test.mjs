@@ -11,9 +11,9 @@ test('Mai nap: Claude-összefoglaló, források, Claude-újdonság, időjárás-
   const view = await page.textContent('#view');
   assert.match(view, /Claude-összefoglaló/);
   assert.match(view, /Nő a családi pótlék/);
-  assert.match(view, /Miért számít: Két gyereked van\./);
+  assert.match(await page.textContent('[data-k=hat]'), /Hogyan hat rád\s*Két gyereked van\./);
   assert.match(view, /Claude-újdonságok/);
-  assert.match(view, /Mire jó: Gyorsabb tervezés\./);
+  assert.match(view, /Mire jó\s*Gyorsabb tervezés\./);
   assert.match(view, /Ennyi volt\./);
   assert.match(await page.textContent('[data-k=weather]'), /Vigyél esernyőt/);
   assert.equal(await page.locator('.news a[href="https://index.hu/a"]').count(), 1);
@@ -36,16 +36,18 @@ test('Mai nap: veszélyes link nem kerül ki (csak http/https)', async () => {
   await page.close();
 });
 
-test('Inspiráció: szavazás mentődik, és jön a következő kártya', async () => {
-  const { page, store } = await openApp({ 'kapitany_cards/a1': card('a1'), 'kapitany_cards/b2': card('b2', { tema: 'ai', forras: 'Simon Willison' }) }, { tab: 'insp' });
+test('Inspiráció: görgethető lista, a szavazás mentődik, és a kártya kikerül a listából', async () => {
+  const { page, store } = await openApp({ 'kapitany_cards/a1': card('a1'), 'kapitany_cards/b2': card('b2', { tema: 'ai', forras: 'Simon Willison' }), 'kapitany_cards/c3': card('c3', { tema: 'neveles' }) }, { tab: 'insp' });
+  assert.equal(await page.locator('[data-k=card]').count(), 3, 'több kártya egyszerre látszik');
   const first = await page.getAttribute('[data-k=card]', 'data-id');
-  await page.click('button[data-act=vote][data-v=fel]');
+  await page.click(`[data-k=card][data-id=${first}] button[data-act=vote][data-v=fel]`);
   await page.waitForTimeout(50);
   const s = await store();
   assert.equal(s[`kapitany_feedback/${first}`].szavazat, 'fel');
   assert.equal(s[`kapitany_feedback/${first}`].nap, TODAY);
-  const second = await page.getAttribute('[data-k=card]', 'data-id');
-  assert.notEqual(second, first);
+  assert.equal(await page.locator('[data-k=card]').count(), 2);
+  assert.equal(await page.locator(`[data-k=card][data-id=${first}]`).count(), 0);
+  assert.match(await page.textContent('[data-k=feed-end]'), /Naplóban/);
   await page.close();
 });
 
@@ -94,16 +96,19 @@ test('Inspiráció: napi keret után „Mára elfogyott”', async () => {
   await page.close();
 });
 
-test('Később: a mentett kártya megjelenik, a Kész gomb leveszi', async () => {
+test('Napló: a későbbre mentett kártya megjelenik, a Kész gomb leveszi', async () => {
   const { page, store } = await openApp({ 'kapitany_cards/k1': card('k1') }, { tab: 'insp' });
   await page.click('button[data-act=vote][data-v=kesobb]');
-  await page.click('nav.tabs button[data-tab=kesobb]');
+  await page.click('nav.tabs button[data-tab=naplo]');
   await page.waitForTimeout(50);
   assert.match(await page.textContent('#view'), /Cikk k1/);
   await page.click('button[data-act=done]');
   await page.waitForTimeout(50);
   assert.equal((await store())['kapitany_feedback/k1'].kesz, true);
-  assert.match(await page.textContent('#view'), /Üres/);
+  assert.match(await page.textContent('[data-k=naplo-empty]'), /Nincs későbbre mentett/);
+  await page.click('button[data-act=naplo][data-v=minden]');
+  await page.waitForTimeout(50);
+  assert.match(await page.textContent('ul.later'), /Cikk k1[\s\S]*Későbbre mentve · kész/, 'a Minden nézetben megmarad');
   await page.close();
 });
 
