@@ -7,6 +7,11 @@ Az app a GitHub Pages-en fut Claude nélkül is; amit itt feltöltesz, az aznapr
 
 A mappa: a `kapitany` repó helyi másolata. A parancsokat PowerShellben, ebben a mappában futtasd.
 
+**Fontos, hogy a feladat kérdezés nélkül fusson:**
+- A parancsokat pontosan úgy futtasd, ahogy itt szerepelnek, egyenként. Ne fűzd össze őket (`;`, `&&`), és ne írd át őket.
+- Weboldalt és RSS-t a beépített webes olvasóval (WebFetch) és kereséssel (WebSearch) olvass. Ne írj és ne futtass saját segédszkriptet (Python, PowerShell) letöltéshez vagy feldolgozáshoz.
+- Fájlt csak a `tmp` mappába írj.
+
 ## 0. Friss forráslista
 
 ```
@@ -30,7 +35,7 @@ Ha `HIBA` kezdetű, írd ki a hibát, és állj meg.
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\claude-feltoltes.ps1 -Mode export -Out tmp\visszajelzes.json
 ```
 
-(A `tmp` mappát hozd létre, ha nincs. A `tmp` nem kerül a repóba.)
+Ha a `tmp` mappa nincs meg, előbb ezt futtasd: `New-Item -ItemType Directory -Force tmp` (a `tmp` nem kerül a repóba).
 
 A `tmp\visszajelzes.json`-ban:
 - `visszajelzesek`: Dóri szavazatai a korábbi kártyákra (`fel` = tetszett, `le` = nem, `ugras` = átugrotta, `kesobb` = elmentette; ha `olvasva` is van, meg is nyitotta). Ebből tudod, milyen témák, források és milyen jellegű írások tetszenek neki.
