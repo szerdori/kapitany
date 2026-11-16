@@ -44,9 +44,9 @@ A Firebase-ben nincs teendő: a `szerdori.github.io` már engedélyezett domain 
 
 ### 2. Kulcs az alapréteghez (GitHub Actions)
 Az alapréteg a MomAssistant kiszolgálói kulcsával ír az adatbázisba.
-- A gépeden ez itt van: `%USERPROFILE%\.momassistant\kulcs.json`. Nyisd meg Jegyzettömbbel, és jelöld ki a teljes tartalmát.
-- GitHub, a `kapitany` tárolóban: **Settings → Secrets and variables → Actions → New repository secret**
-- Name: `FIREBASE_SERVICE_ACCOUNT`, Secret: a kulcsfájl teljes tartalma → **Add secret**.
+- A gépeden a kulcs itt van: `%USERPROFILE%\.momassistant\kulcs.json`.
+- Egyszerű út: a GitHub CLI-vel (`gh auth login` után) futtasd: `.\scripts\titok-beallitas.ps1`. Ez a kulcs tartalmát kimásolás nélkül beteszi a `FIREBASE_SERVICE_ACCOUNT` titokba.
+- Kézi út: GitHub, a `kapitany` tárolóban: **Settings → Secrets and variables → Actions → New repository secret**, Name: `FIREBASE_SERVICE_ACCOUNT`, Secret: a kulcsfájl teljes tartalma (Jegyzettömbbel kijelölve) → **Add secret**.
 - Ezt a kulcsot ne küldd el senkinek, chatbe se.
 
 Ellenőrzés: **Actions → Napi alapréteg → Run workflow**. A futás naplójában forrásonként látszik, hány elemet talált, vagy hogy nem érte el. Ha egy forrás tartósan nem érhető el, a `sources.json`-ból törölhető vagy javítható.
