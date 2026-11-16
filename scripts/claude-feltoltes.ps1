@@ -2,17 +2,21 @@
 # Ugyanazt a kulcsfájlt használja, mint a MomAssistant (ugyanaz a Firebase-projekt), és a kulcsot soha nem írja ki.
 #
 #   -Mode check                      ellenőrzi, hogy a kulccsal be lehet-e jelentkezni
+#   -Mode bemenet -Out <fajl.json>   ha mára kész a Claude-összefoglaló, "kesz"; különben kiírja az alapréteg
+#                                    tömör jelöltlistáját (hírek, kártyák, összesített visszajelzés) egy fájlba
 #   -Mode last                       kiírja, hogy mára kész-e már a Claude-összefoglaló ("kesz" / "nincs")
 #   -Mode export -Out <fajl.json>    kimenti a visszajelzéseket és a korábban mutatott linkeket a válogatáshoz
-#   -Mode upload -Daily <mai.json> [-Cards <kartyak.json>]
-#                                    feltölti a mai magyar összefoglalót és az ajánlott kártyákat
+#   -Mode upload -Daily <mai.json> [-Cards <kartyak.json>] [-Bemenet <bemenet.json>]
+#                                    feltölti a mai magyar összefoglalót és az ajánlott kártyákat; a jelöltek
+#                                    azonosítóiból (h1, c1, kártya-id) a bemenet alapján pótolja a linkeket és kártyaadatokat
 #
 # A fájlok formátuma a CLAUDE-FELADAT.md-ben van leírva.
 param(
-  [ValidateSet('check', 'last', 'export', 'upload')][string]$Mode = 'check',
+  [ValidateSet('check', 'last', 'bemenet', 'export', 'upload')][string]$Mode = 'check',
   [string]$Out,
   [string]$Daily,
   [string]$Cards,
+  [string]$Bemenet,
   [string]$KeyPath = (Join-Path $env:USERPROFILE '.momassistant\kulcs.json'),
   [string]$Project = 'hazi-naplo'
 )
@@ -123,6 +127,21 @@ if ($Mode -eq 'last') {
   exit 0
 }
 
+if ($Mode -eq 'bemenet') {
+  if (-not $Out) { Write-Output 'HIBA: add meg a kimeneti fájlt (-Out).'; exit 4 }
+  $d = Get-Doc "kapitany_daily/$today"
+  if ($d -and $d.fields.reteg.stringValue -eq 'claude') { Write-Output 'kesz'; exit 0 }
+  $doc = Get-Doc 'kapitany_input/claude'
+  if (-not $doc) { Write-Output 'HIBA: nincs jelöltlista, az alapréteg (GitHub Actions) még nem futott.'; exit 6 }
+  $b = ConvertFrom-FsValue ([pscustomobject]@{ mapValue = [pscustomobject]@{ fields = $doc.fields } })
+  if ($b.datum -ne $today) { Write-Output "HIBA: a jelöltlista régi ($($b.datum)), az alapréteg (GitHub Actions) ma még nem futott."; exit 6 }
+  $dir = Split-Path -Parent $Out
+  if ($dir -and -not (Test-Path $dir)) { $null = New-Item -ItemType Directory -Force $dir }
+  [IO.File]::WriteAllText($Out, ($b | ConvertTo-Json -Depth 10 -Compress), (New-Object Text.UTF8Encoding($false)))
+  Write-Output "Kész: $(@($b.hirek).Count) hír, $(@($b.claudeHirek).Count) Claude-hír, $(@($b.kartyak).Count) kártyajelölt."
+  exit 0
+}
+
 if ($Mode -eq 'export') {
   if (-not $Out) { Write-Output 'HIBA: add meg a kimeneti fájlt (-Out).'; exit 4 }
   $fb = Find-Since 'kapitany_feedback' 'ido' ($nowMs - 120L * 86400000)
@@ -141,17 +160,50 @@ if ($Mode -eq 'export') {
 if (-not $Daily -or -not (Test-Path $Daily)) { Write-Output 'HIBA: add meg a mai összefoglaló fájlját (-Daily).'; exit 4 }
 $d = [IO.File]::ReadAllText($Daily, [Text.Encoding]::UTF8) | ConvertFrom-Json
 if (-not $d.rovatok) { Write-Output 'HIBA: a napi fájlból hiányzik a "rovatok" lista.'; exit 5 }
+
+# A jelöltlista (ha megvan): ebből pótoljuk a hírek linkjeit és a kártyák adatait az azonosítók alapján.
+if (-not $Bemenet) { $Bemenet = Join-Path (Split-Path -Parent $Daily) 'bemenet.json' }
+$linkByJelolt = @{}; $kartyaById = @{}
+if (Test-Path $Bemenet) {
+  $jel = [IO.File]::ReadAllText($Bemenet, [Text.Encoding]::UTF8) | ConvertFrom-Json
+  foreach ($h in @($jel.hirek) + @($jel.claudeHirek)) { if ($h) { $linkByJelolt[[string]$h.id] = @($h.linkek) } }
+  foreach ($k in @($jel.kartyak)) { if ($k) { $kartyaById[[string]$k.id] = $k } }
+}
+# "forrasok": ["h3", "h7"] -> "linkek": az összes forráslink, ismétlés nélkül (a kézzel megadott linkek is maradnak).
+$linkNelkul = 0
+function Expand-Links($item) {
+  if (-not $item.PSObject.Properties['forrasok']) { return }
+  $links = @(); $seen = @{}
+  $all = @()
+  foreach ($fid in @($item.forrasok)) { $all += @($linkByJelolt[[string]$fid]) }
+  if ($item.PSObject.Properties['linkek']) { $all += @($item.linkek) }
+  foreach ($l in $all) { if ($l -and $l.url -and -not $seen.ContainsKey([string]$l.url)) { $seen[[string]$l.url] = 1; $links += $l } }
+  $item.PSObject.Properties.Remove('forrasok')
+  $item | Add-Member -Force -NotePropertyName linkek -NotePropertyValue $links
+  if ($links.Count -eq 0) { $script:linkNelkul++ }
+}
+foreach ($r in @($d.rovatok)) { foreach ($it in @($r.items)) { if ($it) { Expand-Links $it } } }
+foreach ($it in @($d.claudeHirek)) { if ($it) { Expand-Links $it } }
 $d | Add-Member -Force -NotePropertyName reteg -NotePropertyValue 'claude'
 $d | Add-Member -Force -NotePropertyName datum -NotePropertyValue $today
 $d | Add-Member -Force -NotePropertyName keszult -NotePropertyValue $nowMs
 $null = Send-Json 'Patch' "$root/kapitany_daily/$today" @{ fields = (Fields $d) }
 $hirek = 0; foreach ($r in @($d.rovatok)) { $hirek += @($r.items).Count }
 Write-Output "Napi összefoglaló feltöltve: $hirek hír."
+if ($linkNelkul) { Write-Output "FIGYELEM: $linkNelkul hírhez nem találtam forráslinket (ismeretlen azonosító)." }
 
 $added = 0; $updated = 0; $failed = 0
 if ($Cards -and (Test-Path $Cards)) {
   $items = @(([IO.File]::ReadAllText($Cards, [Text.Encoding]::UTF8) | ConvertFrom-Json) | ForEach-Object { $_ })
   foreach ($c in $items) {
+    # Jelöltből választott kártya: elég az azonosító és a magyar szöveg, a többit a jelöltlistából pótoljuk.
+    if (-not $c.url -and $c.id -and $kartyaById.ContainsKey([string]$c.id)) {
+      $j = $kartyaById[[string]$c.id]
+      foreach ($f in 'url', 'cim', 'forras', 'tema', 'tipus', 'oktato') {
+        if (-not $c.PSObject.Properties[$f]) { $c | Add-Member -NotePropertyName $f -NotePropertyValue $j.$f }
+      }
+    }
+    if ($c.PSObject.Properties['id']) { $c.PSObject.Properties.Remove('id') }
     if (-not $c.url -or -not ($c.cim -or $c.cimHu)) { $failed++; continue }
     $id = CardId $c.url
     $c | Add-Member -Force -NotePropertyName ajanlva -NotePropertyValue $today

@@ -6,7 +6,9 @@ const app = `export const cert = k => ({ cert: k.project_id });
 export const initializeApp = o => { globalThis.__init = o; };`;
 const firestore = `const store = globalThis.__store = {};
 export const getFirestore = () => ({
-  collection: c => ({ doc: id => {
+  collection: c => ({
+  where: (f, op, v) => ({ get: async () => ({ docs: Object.keys(store).filter(p => p.startsWith(c + '/') && store[p][f] >= v).map(p => ({ id: p, data: () => store[p] })) }) }),
+  doc: id => {
     const p = c + '/' + id;
     return {
       get: async () => ({ exists: p in store, data: () => store[p] }),

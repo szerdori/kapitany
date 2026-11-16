@@ -3,7 +3,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { parseFeed, isBlocked, buildDaily, buildCards, cardId, budapestDate, stripHtml } from '../scripts/lib.mjs';
+import { parseFeed, isBlocked, buildDaily, buildCards, buildBemenet, summarizeFeedback, cardId, budapestDate, stripHtml } from '../scripts/lib.mjs';
 
 const sources = JSON.parse(await readFile(new URL('../sources.json', import.meta.url), 'utf8'));
 const NOW = Date.parse('2026-11-08T08:00:00Z');
@@ -207,4 +207,80 @@ test('feed-mezők különleges alakjai: ismétlődő cím, attribútumos link, �
   assert.equal(items[0].summary, '', 'logikai értékké alakult kivonat üres szöveg');
   const atom = `<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>Nincs link</title></entry><entry><title>Üres link</title><link rel="alternate"/></entry><entry><title><b/></title><link href="https://x/b"/></entry></feed>`;
   assert.deepEqual(parseFeed(atom), [], 'link és használható cím nélkül kiesik');
+});
+
+test('visszajelzés-összesítés: témák, források, olvasottság, legutóbbi kedvelt és elutasított címek', () => {
+  const fb = [
+    { szavazat: 'fel', tema: 'dnd', forras: 'Sly', cim: 'Régi jó', ido: 1 },
+    { szavazat: 'fel', tema: 'dnd', forras: 'Sly', cim: 'Új jó', ido: 3, olvasva: true },
+    { szavazat: 'le', tema: 'ai', cim: 'Nem tetszett', ido: 2 },
+    { szavazat: 'ugras', tema: 'ai', forras: 'Mollick', ido: 4 },
+    { szavazat: 'kesobb', forras: 'Mollick' },
+    { szavazat: 'ismeretlen', tema: 'ai', forras: 'Mollick', cim: 'x' },
+    { szavazat: 'fel', cim: 'Téma nélkül' },
+  ];
+  const s = summarizeFeedback(fb);
+  assert.equal(s.db, 7);
+  assert.deepEqual(s.temak, { dnd: { fel: 2, le: 0, ugras: 0, kesobb: 0, olvasva: 1 }, ai: { fel: 0, le: 1, ugras: 1, kesobb: 0, olvasva: 0 } });
+  assert.deepEqual(Object.keys(s.forrasok), ['Sly', 'Mollick'], 'a több visszajelzést kapott forrás elöl');
+  assert.deepEqual(s.kedvelt, [{ cim: 'Új jó', forras: 'Sly', tema: 'dnd' }, { cim: 'Régi jó', forras: 'Sly', tema: 'dnd' }, { cim: 'Téma nélkül', forras: null, tema: null }]);
+  assert.deepEqual(s.elutasitott, [{ cim: 'Nem tetszett', forras: null, tema: 'ai' }], 'hiányzó mező null, mert a Firestore nem fogad undefined-ot');
+  assert.equal(summarizeFeedback(fb, { kedvelt: 1, maxForras: 1 }).kedvelt.length, 1);
+  assert.deepEqual(Object.keys(summarizeFeedback(fb, { maxForras: 1 }).forrasok), ['Sly']);
+});
+
+test('Claude-bemenet: azonosítós hír- és kártyajelöltek kivonattal, tiltott és már látott nélkül', () => {
+  const news = [
+    { source: { nev: 'Telex', rovat: 'itthon' }, items: [
+      { title: 'Adódöntés', link: 'https://t/1', date: ago(1), summary: 'x'.repeat(500) },
+      { title: 'Gyilkosság Pesten', link: 'https://t/2', date: ago(1), summary: '' },
+    ] },
+    { source: { nev: 'Index', rovat: 'itthon' }, items: [{ title: 'Adódöntés', link: 'https://i/1', date: ago(2), summary: '' }] },
+    { source: { nev: 'BBC', rovat: 'vilag' }, items: [{ title: 'Summit', link: 'https://b/1', date: ago(3), summary: 'Leaders met.' }] },
+    { source: { nev: 'Claude Code', rovat: 'claude' }, items: [{ title: 'v2.2', link: 'https://gh/1', date: ago(5), summary: 'New' }] },
+  ];
+  const card = (n, forras, megjelent) => ({ id: cardId(`https://c/${n}`), url: `https://c/${n} `, cim: `C${n}`, leiras: 'y'.repeat(300), forras, tema: 'dnd', tipus: 'szoveg', oktato: n === 1, megjelent });
+  const cards = [card(1, 'A', NOW - 5), card(2, 'A', NOW - 1), card(3, 'A', NOW - 2), card(4, 'B', NOW - 3)];
+  const b = buildBemenet({
+    newsFeeds: news, cards, stems: ['gyilkos'], now: NOW, today: '2026-11-08',
+    feedback: [{ url: 'https://c/4', szavazat: 'le', tema: 'dnd' }], ajanlottUrlek: [' https://c/3', null],
+    claudeOldalak: [{ nev: 'Anthropic', url: 'https://a' }], perForras: 1,
+  });
+  assert.equal(b.datum, '2026-11-08');
+  assert.equal(b.keszult, NOW);
+  assert.deepEqual(b.hirek.map(h => [h.id, h.rovat, h.cim]), [['h1', 'itthon', 'Adódöntés'], ['h2', 'vilag', 'Summit']]);
+  assert.equal(b.hirek[0].kivonat.length, 300);
+  assert.deepEqual(b.hirek[0].linkek.map(l => l.nev), ['Telex', 'Index'], 'ugyanaz a hír egy jelölt, minden forráslinkkel');
+  assert.deepEqual(b.claudeHirek.map(h => [h.id, h.cim]), [['c1', 'v2.2']]);
+  assert.deepEqual(b.claudeOldalak, [{ nev: 'Anthropic', url: 'https://a' }]);
+  assert.deepEqual(b.kartyak.map(k => k.cim), ['C2'], 'a már látott és ajánlott kiesik, forrásonként a legfrissebb marad');
+  assert.equal(b.kartyak[0].leiras.length, 200);
+  assert.deepEqual(Object.keys(b.kartyak[0]), ['id', 'url', 'cim', 'leiras', 'forras', 'tema', 'tipus', 'oktato']);
+  assert.equal(b.visszajelzes.db, 1);
+  const alap = buildBemenet({ newsFeeds: [], cards, stems: [], now: NOW, today: 'd', maxKartya: 2 });
+  assert.deepEqual(alap.kartyak.map(k => k.cim), ['C2', 'C3']);
+  assert.deepEqual(alap.claudeOldalak, []);
+});
+
+test('napi összeállítás kivonat nélkül nem ad kivonat mezőt', () => {
+  const d = buildDaily({ feeds: [{ source: { nev: 'T', rovat: 'itthon' }, items: [{ title: 'A', link: 'https://a', date: ago(1), summary: 's' }] }], stems: [], now: NOW });
+  assert.equal('kivonat' in d.rovatok[0].items[0], false);
+});
+
+test('CLAUDE-FELADAT.md: a tartalmi szabályok megvannak, és csak létező feltöltő-módot hív', async () => {
+  const md = await readFile(new URL('../CLAUDE-FELADAT.md', import.meta.url), 'utf8');
+  for (const szabaly of [
+    'gyilkosság, nemi erőszak, zaklatás, kínzás, bántalmazás',
+    'egyedi, helyi esemény tágabb következmény nélkül',
+    'tényszerűen: döntések és következmények',
+    'csak bizonyítékalapú forrásból',
+    'Csak regisztráció nélkül olvasható',
+    'Csak abból írj, amit a forrásban ténylegesen elolvastál',
+    '2–4 mondat arról, konkrétan hogyan érintheti Dórit',
+  ]) assert.ok(md.includes(szabaly), szabaly);
+  const ps = await readFile(new URL('../scripts/claude-feltoltes.ps1', import.meta.url), 'utf8');
+  const modok = ps.match(/ValidateSet\(([^)]*)\)\]\[string\]\$Mode/)[1].match(/'([a-z]+)'/g).map(m => m.slice(1, -1));
+  const hivott = [...md.matchAll(/-Mode (\w+)/g)].map(m => m[1]);
+  assert.deepEqual([...new Set(hivott)], ['bemenet', 'upload']);
+  for (const m of hivott) assert.ok(modok.includes(m), m);
 });
