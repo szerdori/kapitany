@@ -8,7 +8,10 @@ export const COLL = {
   feedback: 'kapitany_feedback',
   settings: 'kapitany_settings',
   meta: 'kapitany_meta',
+  input: 'kapitany_input',
 };
+
+const DAY = 86400e3;
 
 export const ROVATOK = [
   { id: 'itthon', cim: 'Itthon' },
@@ -74,7 +77,8 @@ export function isBlocked(item, stems) {
 const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
 
 // Friss, nem tiltott, ismétlés nélküli hírek rovatonként, a legújabbak elöl.
-export function buildDaily({ feeds, stems, now = Date.now(), maxAgeHours = 36, perRovat = 6 }) {
+// kivonat: true esetén a tételek a feed kivonatát is megkapják (a Claude-bemenethez).
+export function buildDaily({ feeds, stems, now = Date.now(), maxAgeHours = 36, perRovat = 6, kivonat = false }) {
   const seen = new Map();
   const sections = ROVATOK.map(r => ({ id: r.id, cim: r.cim, items: [] }));
   const claude = [];
@@ -90,6 +94,7 @@ export function buildDaily({ feeds, stems, now = Date.now(), maxAgeHours = 36, p
       const dup = seen.get(key);
       if (dup) { if (!dup.linkek.some(l => l.nev === f.source.nev)) dup.linkek.push({ nev: f.source.nev, url: it.link }); continue; }
       const item = { cim: it.title, osszefoglalo: '', miert: '', linkek: [{ nev: f.source.nev, url: it.link }] };
+      if (kivonat) item.kivonat = it.summary.slice(0, 300);
       seen.set(key, item);
       all.push({ rovat: f.source.rovat, t: Number.isFinite(t) ? t : 0, item });
     }
@@ -127,6 +132,69 @@ export function buildCards({ feeds, stems, now = Date.now(), maxAgeDays = 21 }) 
     }
   }
   return out;
+}
+
+// ---- Claude-bemenet: egy tömör fájl, amiből a napi Claude-feladat dolgozik ----
+// Így Claude-nak nem kell egyenként letöltenie a forrásokat: a letöltés, a kulcsszavas szűrés, az összevonás
+// és a már látott linkek kiszűrése itt történik, kód által, tokenek nélkül.
+
+const SZAVAZATOK = ['fel', 'le', 'ugras', 'kesobb'];
+
+// A visszajelzések összesítése: témánként és forrásonként darabszámok, plusz a legutóbbi kedvelt és elutasított címek.
+export function summarizeFeedback(feedback, { kedvelt = 15, elutasitott = 10, maxForras = 25 } = {}) {
+  const temak = {};
+  const forrasok = {};
+  const count = (map, key, f) => {
+    if (!key) return;
+    const m = (map[key] ??= { fel: 0, le: 0, ugras: 0, kesobb: 0, olvasva: 0 });
+    if (SZAVAZATOK.includes(f.szavazat)) m[f.szavazat]++;
+    if (f.olvasva) m.olvasva++;
+  };
+  for (const f of feedback) { count(temak, f.tema, f); count(forrasok, f.forras, f); }
+  const total = m => m.fel + m.le + m.ugras + m.kesobb;
+  const topForras = Object.fromEntries(Object.entries(forrasok).sort((a, b) => total(b[1]) - total(a[1])).slice(0, maxForras));
+  const sorted = [...feedback].sort((a, b) => (b.ido || 0) - (a.ido || 0));
+  const pick = (v, n) => sorted.filter(f => f.szavazat === v && f.cim).slice(0, n)
+    .map(f => ({ cim: f.cim, forras: f.forras ?? null, tema: f.tema ?? null }));
+  return { db: feedback.length, temak, forrasok: topForras, kedvelt: pick('fel', kedvelt), elutasitott: pick('le', elutasitott) };
+}
+
+// A Claude-bemenet: rövid azonosítós hír- és kártyajelöltek (Claude az azonosítókra hivatkozik, a feltöltő
+// pótolja a linkeket és a kártyaadatokat), a Claude-oldalak és az összesített visszajelzés.
+export function buildBemenet({ newsFeeds, cards, stems, feedback = [], ajanlottUrlek = [], claudeOldalak = [],
+  now = Date.now(), today, perRovat = 12, maxKartya = 80, perForras = 5 }) {
+  const daily = buildDaily({ feeds: newsFeeds, stems, now, perRovat, kivonat: true });
+  let n = 0;
+  const jelolt = (id, i) => ({ id, cim: i.cim, kivonat: i.kivonat, linkek: i.linkek });
+  const hirek = daily.rovatok.flatMap(r => r.items.map(i => ({ rovat: r.id, ...jelolt(`h${++n}`, i) })));
+  const claudeHirek = daily.claudeHirek.map((i, k) => jelolt(`c${k + 1}`, i));
+  const seen = new Set([...feedback.map(f => f.url), ...ajanlottUrlek].filter(Boolean).map(u => String(u).trim()));
+  const perSource = {};
+  const kartyak = cards
+    .filter(c => !seen.has(c.url.trim()))
+    .sort((a, b) => b.megjelent - a.megjelent)
+    .filter(c => (perSource[c.forras] = (perSource[c.forras] || 0) + 1) <= perForras)
+    .slice(0, maxKartya)
+    .map(c => ({ id: c.id, url: c.url, cim: c.cim, leiras: c.leiras.slice(0, 200), forras: c.forras, tema: c.tema, tipus: c.tipus, oktato: c.oktato }));
+  return { datum: today, keszult: now, hirek, claudeHirek, claudeOldalak, kartyak, visszajelzes: summarizeFeedback(feedback) };
+}
+
+// A bemenet mentése: a visszajelzéseket és a Claude által már ajánlott kártyákat az adatbázisból olvassa.
+// A kapitany_input gyűjteménybe kerül (nem a kapitany_meta-ba), mert azt az app mindig letölti.
+// A napló nyilvános, ezért csak darabszámokat ír ki.
+export async function saveBemenet({ db, newsFeeds, cards, sources, today, now = Date.now, log = console.log }) {
+  const t = now();
+  const fb = await db.collection(COLL.feedback).where('ido', '>=', t - 120 * DAY).get();
+  const aj = await db.collection(COLL.cards).where('ajanlva', '>=', budapestDate(new Date(t - 60 * DAY))).get();
+  const bemenet = buildBemenet({
+    newsFeeds, cards, stems: sources.tiltott, now: t, today,
+    feedback: fb.docs.map(d => d.data()),
+    ajanlottUrlek: aj.docs.map(d => d.data().url),
+    claudeOldalak: sources.claudeOldalak || [],
+  });
+  await db.collection(COLL.input).doc('claude').set(bemenet);
+  log(`Claude-bemenet: ${bemenet.hirek.length} hír, ${bemenet.kartyak.length} kártyajelölt, ${bemenet.visszajelzes.db} visszajelzés.`);
+  return bemenet;
 }
 
 // ---- Az alapréteg futása (az alap.mjs csak ezt hívja; a hálózat és az adatbázis kívülről jön, így tesztelhető) ----
@@ -188,6 +256,9 @@ export async function runAlap({ sources, fetchImpl = fetch, getDb = null, now = 
     log(`Próbafutás (nincs FIREBASE_SERVICE_ACCOUNT): ${countNews(daily)} hír, ${cards.length} kártya.`);
     return { proba: true, daily, cards };
   }
-  const saved = await saveAlap({ db: await getDb(), daily, cards, today: budapestDate(new Date(now())), now, log });
-  return { proba: false, daily, cards, ...saved };
+  const db = await getDb();
+  const today = budapestDate(new Date(now()));
+  const saved = await saveAlap({ db, daily, cards, today, now, log });
+  const bemenet = await saveBemenet({ db, newsFeeds, cards, sources, today, now, log });
+  return { proba: false, daily, cards, bemenet, ...saved };
 }

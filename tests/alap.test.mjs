@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { fetchFeed, saveAlap, runAlap, COLL } from '../scripts/lib.mjs';
+import { fetchFeed, saveAlap, saveBemenet, runAlap, cardId, COLL } from '../scripts/lib.mjs';
 
 const NOW = Date.parse('2026-11-08T08:00:00Z');
 const now = () => NOW;
@@ -12,12 +12,19 @@ const ago = h => new Date(NOW - h * 3600e3).toUTCString();
 const rss = (...titles) => `<rss><channel>${titles.map((t, i) => `<item><title>${t}</title><link>https://ex.com/${encodeURIComponent(t)}/${i}</link><pubDate>${ago(1)}</pubDate></item>`).join('')}</channel></rss>`;
 const response = (body, status = 200) => ({ ok: status < 400, status, text: async () => body });
 
-// firebase-admin-szerű memóriabeli Firestore: collection(c).doc(id).get/set/create
+// firebase-admin-szerű memóriabeli Firestore: collection(c).doc(id).get/set/create és where(mező, '>=', érték).get()
 function fakeDb(seed = {}) {
   const store = { ...seed };
   return {
     store,
     collection: c => ({
+      where: (field, op, value) => ({
+        get: async () => ({
+          docs: Object.entries(store)
+            .filter(([p, d]) => p.startsWith(`${c}/`) && d[field] >= value)
+            .map(([p, d]) => ({ id: p.slice(c.length + 1), data: () => d })),
+        }),
+      }),
       doc: id => {
         const p = `${c}/${id}`;
         return {
@@ -105,6 +112,34 @@ test('runAlap: éles futás a budapesti mai napra ment', async () => {
   assert.equal(r.proba, false);
   assert.equal(r.added, 1);
   assert.ok(`${COLL.daily}/2026-11-09` in db.store);
+  const b = db.store[`${COLL.input}/claude`];
+  assert.equal(b.datum, '2026-11-09');
+  assert.deepEqual(b.hirek.map(h => h.cim), ['Adódöntés']);
+  assert.deepEqual(b.claudeOldalak, [], 'ha a forráslistában nincs, üres lista');
+});
+
+test('saveBemenet: kiszűri a már látott és a Claude által már ajánlott kártyákat, összesíti a visszajelzést', async () => {
+  const NAP = 86400e3;
+  const lathato = 'https://insp/lathato', ajanlott = 'https://insp/ajanlott', uj = 'https://insp/uj';
+  const db = fakeDb({
+    [`${COLL.feedback}/f1`]: { szavazat: 'fel', tema: 'dnd', forras: 'Sly', cim: 'Jó cikk', url: lathato, ido: NOW - NAP },
+    [`${COLL.feedback}/regi`]: { szavazat: 'le', tema: 'dnd', url: 'https://regi', ido: NOW - 200 * NAP },
+    [`${COLL.cards}/a`]: { url: ajanlott, ajanlva: '2026-11-01' },
+    [`${COLL.cards}/b`]: { url: 'https://insp/nagyonregi', ajanlva: '2026-01-01' },
+  });
+  const card = url => ({ id: cardId(url), url, cim: url, leiras: '', forras: 'Sly', tema: 'dnd', tipus: 'szoveg', oktato: false, megjelent: NOW });
+  const logs = [];
+  const b = await saveBemenet({
+    db, newsFeeds: [], cards: [card(lathato), card(ajanlott), card(uj)],
+    sources: { tiltott: [], claudeOldalak: [{ nev: 'Anthropic', url: 'https://anthropic' }] },
+    today: '2026-11-08', now, log: m => logs.push(m),
+  });
+  assert.deepEqual(b.kartyak.map(k => k.url), [uj]);
+  assert.equal(b.visszajelzes.db, 1, 'a 120 napnál régebbi visszajelzés nem számít');
+  assert.deepEqual(b.visszajelzes.kedvelt, [{ cim: 'Jó cikk', forras: 'Sly', tema: 'dnd' }]);
+  assert.deepEqual(b.claudeOldalak, [{ nev: 'Anthropic', url: 'https://anthropic' }]);
+  assert.equal(db.store[`${COLL.input}/claude`], b);
+  assert.deepEqual(logs, ['Claude-bemenet: 0 hír, 1 kártyajelölt, 1 visszajelzés.'], 'a nyilvános naplóba csak darabszám kerül');
 });
 
 test('alap.mjs: kulcs nélkül próbafutást csinál, és nem tölti be a firebase-admint', () => {
@@ -129,4 +164,5 @@ test('alap.mjs: kulccsal a firebase-admint tölti be, és a Firestore-ba ment', 
   assert.ok(saved.kulcsok.includes('kapitany_meta/alap'));
   assert.ok(saved.kulcsok.some(k => k.startsWith('kapitany_daily/')));
   assert.ok(saved.kulcsok.some(k => k.startsWith('kapitany_cards/')));
+  assert.ok(saved.kulcsok.includes('kapitany_input/claude'));
 });

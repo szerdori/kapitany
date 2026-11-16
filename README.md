@@ -17,7 +17,9 @@ Két réteg dolgozik, és az app mindig a GitHub Pages-ről töltődik be, Claud
 
 Az app kiírja, melyiket látod: „Claude-összefoglaló, 7:42” vagy „Alapváltozat, Claude ma még nem futott”.
 
-Minden adat a MomAssistant Firebase-projektjében van, külön gyűjteményekben (`kapitany_daily`, `kapitany_cards`, `kapitany_feedback`, `kapitany_settings`, `kapitany_meta`). A hozzáférést a MomAssistant meglévő Firestore-szabályai döntik el, így ugyanazok a Google-fiókok érik el, mint a MomAssistantot.
+Minden adat a MomAssistant Firebase-projektjében van, külön gyűjteményekben (`kapitany_daily`, `kapitany_cards`, `kapitany_feedback`, `kapitany_settings`, `kapitany_meta`, `kapitany_input`).
+
+Az alapréteg a Claude-réteg munkáját is előkészíti: a `kapitany_input/claude` dokumentumba tömör jelöltlistát ír (friss hírek kivonattal, még nem látott kártyák, összesített visszajelzés). Így Claude-nak nem kell egyenként letöltenie a forrásokat, és a napi futás töredék annyi tokent használ. A hozzáférést a MomAssistant meglévő Firestore-szabályai döntik el, így ugyanazok a Google-fiókok érik el, mint a MomAssistantot.
 
 ## Fájlok
 
@@ -76,8 +78,8 @@ A `tests` mappában vannak, és folyamatosan bővülnek: minden új funkcióhoz 
 
 | Fájl | Mit tesztel |
 |---|---|
-| `tests/lib.test.mjs` | az alapréteg logikája: feedek feldolgozása (RSS, RDF, Atom, hibás feedek), tiltott témák szűrése, napi összeállítás, kártyák |
-| `tests/alap.test.mjs` | az alapréteg futása: letöltés, hibás forrás, mentés az adatbázisba (Claude-összefoglaló felülírása nélkül), maga az `alap.mjs` |
+| `tests/lib.test.mjs` | az alapréteg logikája: feedek feldolgozása (RSS, RDF, Atom, hibás feedek), tiltott témák szűrése, napi összeállítás, kártyák, a Claude-bemenet (jelöltek, összesített visszajelzés), és hogy a `CLAUDE-FELADAT.md` tartalmi szabályai és parancsai rendben vannak |
+| `tests/alap.test.mjs` | az alapréteg futása: letöltés, hibás forrás, mentés az adatbázisba (Claude-összefoglaló felülírása nélkül), a Claude-bemenet mentése (már látott kártyák nélkül), maga az `alap.mjs` |
 | `tests/ui.test.mjs` | a felület fő útjai láthatatlan böngészőben: Mai nap, Inspiráció, Napló, Beállítások |
 | `tests/ui-logika.test.mjs` | az ajánló, az időjárás-tipp, a ritkább állapotok és hibák, és a Firebase-adapter (kitalált Firebase-zel) |
 | `tests/lefedettseg.mjs` | lefuttatja az összeset, és kiírja, a kód hány százalékát járják be |
